@@ -1,120 +1,130 @@
-import { useState, useEffect, useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import axios from "axios";
+
+import Modal from "../ui/Modal.jsx";
+import { Button, Note, RecordPicker } from "../ui/Controls.jsx";
+import { LoadingRows } from "../ui/Sheet.jsx";
 import { TourFormContext } from "../../Context/TourFormContext.jsx";
 
+const API = "http://localhost:3030/bikepacking";
+
 const LoadTourPopup = ({ onClose, onUploadSuccess }) => {
-  const [userTours, setUserTours] = useState([]);
-  const [selectedTourId, setSelectedTourId] = useState("");
+  const [tours, setTours] = useState([]);
+  const [selectedId, setSelectedId] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   const { setTourData } = useContext(TourFormContext);
   const userId = sessionStorage.getItem("userId");
 
   useEffect(() => {
-    const fetchUserTours = async () => {
-      if (!userId) return;
+    let cancelled = false;
+
+    const load = async () => {
+      if (!userId) {
+        setLoading(false);
+        setError("Your session expired. Log in and try again.");
+        return;
+      }
       try {
-        const userRes = await axios.get(
-          `http://localhost:3030/bikepacking/users/${userId}`
+        const userRes = await axios.get(`${API}/users/${userId}`);
+        const ids = userRes.data.tours || [];
+        const data = await Promise.all(
+          ids.map((id) => axios.get(`${API}/tours/${id}`).then((r) => r.data))
         );
-        const tourIds = userRes.data.tours || [];
-        const toursData = await Promise.all(
-          tourIds.map((id) =>
-            axios
-              .get(`http://localhost:3030/bikepacking/tours/${id}`)
-              .then((r) => r.data)
-          )
-        );
-        setUserTours(toursData);
-      } catch (err) {
-        console.error(err);
-        setError("Fehler beim Laden der Touren");
+        if (!cancelled) setTours(data);
+      } catch {
+        if (!cancelled)
+          setError("Your saved tours could not be fetched. Check the server and try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchUserTours();
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const handleConfirm = async () => {
-    if (!selectedTourId) {
-      setError("Bitte eine Tour auswählen");
-      return;
-    }
-
-    const tour = userTours.find((t) => t._id === selectedTourId);
+    const tour = tours.find((t) => t._id === selectedId);
     if (!tour) {
-      setError("Tour nicht gefunden");
+      setError("Choose a tour from the list first.");
       return;
     }
 
-    // Form Daten setzen
+    setBusy(true);
     setTourData(tour);
 
-    // GPX laden, falls vorhanden
     if (tour.GPX_file && onUploadSuccess) {
       try {
-        const gpxRes = await axios.get(
-          `http://localhost:3030/bikepacking/loadGpx/${tour.GPX_file}`
-        );
-        const gpxData = gpxRes.data;
-
-        // Direkt den Callback mit allen Daten aufrufen
+        const { data } = await axios.get(`${API}/loadGpx/${tour.GPX_file}`);
         onUploadSuccess({
-          coordinates: gpxData.coordinates,
-          km: gpxData.km,
-          hm: gpxData.hm,
-          tourName: gpxData.tourName || tour.Name,
-          fileName: gpxData.fileName,
+          coordinates: data.coordinates,
+          km: data.km,
+          hm: data.hm,
+          tourName: data.tourName || tour.Name,
+          fileName: data.fileName,
         });
-      } catch (err) {
-        console.error(err);
-        setError("Fehler beim Laden der GPX-Datei");
+      } catch {
+        setBusy(false);
+        setError(
+          `“${tour.Name}” loaded, but its GPX track is missing on the server. The details are filled in; the map stays empty.`
+        );
+        return;
       }
     }
 
+    setBusy(false);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-79 md:w-99 rounded-xl p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-xl">
-          ✕
-        </button>
-        <h2 className="text-2xl font-semibold mb-4 text-center">Tour laden</h2>
-        {error && (
-          <div className="text-red-600 text-sm mb-3 text-center">{error}</div>
-        )}
-
-        <div className="max-h-64 overflow-y-auto mb-3">
-          {userTours.length === 0 && (
-            <p className="text-gray-600 text-center">Keine Touren verfügbar</p>
-          )}
-          {userTours.map((tour) => (
-            <div
-              key={tour._id}
-              onClick={() => setSelectedTourId(tour._id)}
-              className={`p-2 mb-2 cursor-pointer border rounded ${
-                selectedTourId === tour._id
-                  ? "border-black bg-gray-100"
-                  : "border-gray-300"
-              }`}
-            >
-              <p className="font-semibold">{tour.Name}</p>
-              <p className="text-sm text-gray-500">
-                {tour.StartDate} - {tour.EndDate}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <button
+    <Modal
+      onClose={onClose}
+      title="Load a tour"
+      code="Tour · Saved"
+      footer={
+        <Button
+          variant="clay"
           onClick={handleConfirm}
-          className="w-full bg-black text-white py-2 rounded-lg uppercase"
+          busy={busy}
+          disabled={loading || tours.length === 0}
+          className="w-full"
         >
-          Laden
-        </button>
+          Load onto the sheet
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {error ? <Note tone="error">{error}</Note> : null}
+
+        {loading ? (
+          <LoadingRows rows={3} />
+        ) : tours.length === 0 ? (
+          <p className="m-grid border border-dashed border-ink/40 px-4 py-8 text-center text-sm text-ink-soft">
+            You have not saved a tour yet. Fill in the tour details on the sheet
+            and press Save.
+          </p>
+        ) : (
+          <RecordPicker
+            legend="Saved tours"
+            name="saved-tour"
+            value={selectedId}
+            onChange={setSelectedId}
+            records={tours.map((tour) => ({
+              id: tour._id,
+              title: tour.Name || "Unnamed tour",
+              meta:
+                [tour.StartDate, tour.EndDate].filter(Boolean).join(" – ") ||
+                "No dates",
+            }))}
+          />
+        )}
       </div>
-    </div>
+    </Modal>
   );
 };
 

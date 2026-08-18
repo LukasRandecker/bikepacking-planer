@@ -1,117 +1,120 @@
-import { useState, useEffect } from "react"; // useEffect hinzufügen
+import { useEffect, useState } from "react";
 import axios from "axios";
 
+import Modal from "../ui/Modal.jsx";
+import { Button, Field, Note } from "../ui/Controls.jsx";
+
+const API = "http://localhost:3030/bikepacking";
+
 const Login_Popup = ({ onClose, onLoginSuccess, loginMessage }) => {
-  // loginMessage als Prop
   const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("");
   const [pw, setPw] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (loginMessage) setError(loginMessage); // Meldung vom Parent anzeigen
-  }, [loginMessage]);
+  const isLogin = mode === "login";
 
-  const handleSubmit = async () => {
+  useEffect(() => setNotice(loginMessage || ""), [loginMessage]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError("");
+
     if (!username || !pw) {
-      setError("Please enter your username and password");
+      setError("Enter both a username and a password.");
       return;
     }
 
+    setBusy(true);
     try {
-      if (mode === "login") {
-        const res = await axios.get(
-          `http://localhost:3030/bikepacking/users/username/${username}`
-        );
+      if (isLogin) {
+        const res = await axios.get(`${API}/users/username/${username}`);
         if (res.data.pw !== pw) {
-          setError("Incorrect password");
+          setError("That password does not match this username.");
           return;
         }
-
-        // Erst User setzen, dann Popup schließen
-        onLoginSuccess(res.data);
         sessionStorage.setItem("userId", res.data._id);
-        setError("");
-        setTimeout(() => onClose(), 0); 
-      }
-
-      if (mode === "register") {
-        const res = await axios.post(
-          "http://localhost:3030/bikepacking/users",
-          { username, pw }
-        );
         onLoginSuccess(res.data);
+      } else {
+        const res = await axios.post(`${API}/users`, { username, pw });
         sessionStorage.setItem("userId", res.data._id);
-        setError("");
-        setTimeout(() => onClose(), 0);
+        onLoginSuccess(res.data);
       }
+      onClose();
     } catch (err) {
-      console.error(err);
-      if (err.response?.status === 404) setError("User not found");
-      else if (err.response?.status === 400) setError("User already exists");
-      else setError("Server error");
+      const status = err.response?.status;
+      if (status === 404)
+        setError(`No account called “${username}”. Register instead?`);
+      else if (status === 400)
+        setError(`“${username}” is taken. Pick another name, or log in.`);
+      else
+        setError("The server did not answer. Check that it is running on port 3030.");
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-79 md:w-99 rounded-xl p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-xl">
-          {" "}
-          ✕
-        </button>
+    <Modal
+      onClose={onClose}
+      title={isLogin ? "Log in" : "Register"}
+      code="Account"
+      footer={
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="clay"
+            onClick={handleSubmit}
+            busy={busy}
+            className="w-full"
+          >
+            {isLogin ? "Log in" : "Create account"}
+          </Button>
+          <p className="t-label text-center">
+            {isLogin ? "No account yet?" : "Already registered?"}{" "}
+            <button
+              type="button"
+              className="t-label t-label--clay underline"
+              onClick={() => {
+                setMode(isLogin ? "register" : "login");
+                setError("");
+              }}
+            >
+              {isLogin ? "Register" : "Log in"}
+            </button>
+          </p>
+        </div>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {notice && !error ? <Note tone="info">{notice}</Note> : null}
+        {error ? <Note tone="error">{error}</Note> : null}
 
-        <h2 className="text-2xl font-semibold mb-4 text-center">
-          {mode === "login" ? "Login" : "Register"}
-        </h2>
-
-        <input
+        <Field
+          label="Username"
           type="text"
-          placeholder="Username"
+          autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 mb-3"
+          error={error && !username ? "Required" : undefined}
         />
 
-        <input
+        <Field
+          label="Password"
           type="password"
-          placeholder="Password"
+          autoComplete={isLogin ? "current-password" : "new-password"}
           value={pw}
           onChange={(e) => setPw(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 mb-3"
+          error={error && !pw ? "Required" : undefined}
         />
 
-        {error && (
-          <div className="text-red-600 text-sm mb-3 text-center">{error}</div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-black text-white py-2 rounded-lg uppercase mb-3"
-        >
-          {mode === "login" ? "Login" : "Register"}
+        {/* Lets Enter submit the form; the visible action lives in the footer. */}
+        <button type="submit" className="sr-only" tabIndex={-1}>
+          {isLogin ? "Log in" : "Create account"}
         </button>
-
-        <div className="text-center text-sm">
-          {mode === "login" ? (
-            <span>
-              Don't have an account yet?{" "}
-              <button className="underline" onClick={() => setMode("register")}>
-                Register
-              </button>
-            </span>
-          ) : (
-            <span>
-              Already registered?{" "}
-              <button className="underline" onClick={() => setMode("login")}>
-                Login
-              </button>
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 };
 

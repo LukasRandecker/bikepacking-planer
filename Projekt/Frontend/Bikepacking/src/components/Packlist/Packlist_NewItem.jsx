@@ -1,132 +1,177 @@
 import { useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
 
-const Packlist_NewItem = ({ onClose, onSave }) => {
-  const [item, setItem] = useState("");
-  const [weight, setWeight] = useState("");
-  const [price, setPrice] = useState("");
-  const [productLink, setProductLink] = useState("");
+import Modal from "../ui/Modal.jsx";
+import { Button, Field, Note } from "../ui/Controls.jsx";
+import { IconImage } from "../ui/Icons.jsx";
+
+const MAX_BYTES = 5 * 1024 * 1024;
+const TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+/**
+ * Adding gear to a category. The drop zone is a plate frame waiting for its
+ * plate; the errors say which field is wrong and what to do about it, rather
+ * than asking the user to fill in "all fields".
+ */
+const Packlist_NewItem = ({ category, onClose, onSave }) => {
+  const [values, setValues] = useState({
+    item: "",
+    weight: "",
+    price: "",
+    productLink: "",
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const fileInputRef = useRef(null);
-  const [imageFile, setImageFile] = useState(null); // for backend
-  const [image, setImage] = useState(null); // for preview
 
-  const [errorMessage, setErrorMessage] = useState("");
+  const set = (key) => (e) =>
+    setValues((v) => ({ ...v, [key]: e.target.value }));
 
-  const handleImage = (file) => {
+  const takeImage = (file) => {
     if (!file) return;
-
-    setImageFile(file); //Server file
-    setImage(URL.createObjectURL(file)); // Preview nur blob
+    if (!TYPES.includes(file.type)) {
+      setErrors((e) => ({ ...e, image: "Use a JPG, PNG or WEBP file." }));
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setErrors((e) => ({
+        ...e,
+        image: `That file is ${(file.size / 1024 / 1024).toFixed(1)} MB. The limit is 5 MB.`,
+      }));
+      return;
+    }
+    setErrors((e) => ({ ...e, image: undefined }));
+    setImageFile(file);
+    setPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return URL.createObjectURL(file);
+    });
   };
 
-  const handleSave = () => {
-    if (!item || !weight || !price || !productLink || !imageFile) {
-      setErrorMessage("Bitte alle Felder ausfüllen und ein Bild hochladen");
+  const handleSave = async () => {
+    const next = {};
+    if (!values.item.trim()) next.item = "Give the item a name.";
+    if (values.weight === "" || Number(values.weight) < 0)
+      next.weight = "Enter the weight in grams.";
+    if (values.price === "" || Number(values.price) < 0)
+      next.price = "Enter the price in euros.";
+    if (!imageFile) next.image = "Add a photo so the item is recognisable in the list.";
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setFormError("");
       return;
     }
 
-    onSave({
-      item,
-      weight,
-      price,
-      productLink,
-      imageFile,
-    });
-    onClose();
+    setBusy(true);
+    const message = await onSave({ ...values, imageFile });
+    setBusy(false);
+    if (message) setFormError(message);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-80 md:w-96 rounded-xl p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-xl">
-          ✕
-        </button>
+    <Modal
+      onClose={onClose}
+      title="New item"
+      code={category ? `Category · ${category}` : undefined}
+      footer={
+        <Button variant="clay" onClick={handleSave} busy={busy} className="w-full">
+          Add item
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {formError ? <Note tone="error">{formError}</Note> : null}
 
-        <h2 className="text-xl font-semibold mb-4 text-center">Neues Item</h2>
+        <div className="flex flex-col gap-1.5">
+          <span className="t-label t-label--ink">Photo</span>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              takeImage(e.dataTransfer.files[0]);
+            }}
+            aria-describedby={errors.image ? "new-item-image-error" : undefined}
+            className="m-grid flex min-h-[8rem] w-full flex-col items-center justify-center gap-2 border border-dashed border-ink/50 p-4 transition-colors duration-150 hover:border-ink"
+          >
+            {preview ? (
+              <img
+                src={preview}
+                alt="Selected item photo"
+                className="max-h-32 w-auto border border-ink object-contain"
+              />
+            ) : (
+              <>
+                <IconImage size={22} />
+                <span className="t-label t-label--ink">Drop a photo or browse</span>
+                <span className="t-label">JPG · PNG · WEBP · up to 5 MB</span>
+              </>
+            )}
+          </button>
+          {errors.image ? (
+            <p id="new-item-image-error" className="t-label text-alarm">
+              {errors.image}
+            </p>
+          ) : null}
 
-        <h2 className="mb-4 text-center text-sm text-red-500">
-          {errorMessage}
-        </h2>
-
-        {/* IMAGE UPLOAD */}
-        <div
-          onClick={() => fileInputRef.current.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            handleImage(e.dataTransfer.files[0]);
-          }}
-          className="border-2 border-dashed border-gray-400 rounded-lg
-                     p-6 text-center cursor-pointer hover:border-black transition mb-4"
-        >
-          {image ? (
-            <img
-              src={image}
-              alt="Preview"
-              className="mx-auto h-32 object-cover rounded-lg"
-            />
-          ) : (
-            <>
-              <ImagePlus className="mx-auto mb-2" />
-              <p className="text-gray-600">Bild hier ablegen oder klicken</p>
-              <p className="text-sm text-gray-400">JPG, PNG, WEBP</p>
-            </>
-          )}
+          <input
+            type="file"
+            accept={TYPES.join(",")}
+            ref={fileInputRef}
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => takeImage(e.target.files[0])}
+          />
         </div>
 
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            setImageFile(file); //backend
-            setImage(URL.createObjectURL(file)); //show preview
-          }}
-        />
-
-        {/* INPUTS */}
-        <input
-          placeholder="ITEM"
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
-          className="w-full mb-2 rounded-lg border px-3 py-2 text-sm"
-        />
-
-        <input
-          placeholder="WEIGHT (in g)"
-          type="number"
-          value={weight}
-          onChange={(e) => setWeight(e.target.value)}
-          className="w-full mb-2 rounded-lg border px-3 py-2 text-sm"
-        />
-
-        <input
-          placeholder="PRICE"
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="w-full mb-2 rounded-lg border px-3 py-2 text-sm"
-        />
-
-        <input
-          placeholder="PRODUCT LINK"
+        <Field
+          label="Item"
           type="text"
-          value={productLink}
-          onChange={(e) => setProductLink(e.target.value)}
-          className="w-full mb-4 rounded-lg border px-3 py-2 text-sm"
+          placeholder="e.g. Sleeping bag"
+          value={values.item}
+          onChange={set("item")}
+          error={errors.item}
         />
 
-        <button
-          onClick={handleSave}
-          className="w-full bg-black text-white py-2 rounded-lg uppercase"
-        >
-          Add Item
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="Weight (g)"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder="g"
+            value={values.weight}
+            onChange={set("weight")}
+            error={errors.weight}
+          />
+          <Field
+            label="Price (EUR)"
+            type="number"
+            min={0}
+            step="0.01"
+            inputMode="decimal"
+            placeholder="EUR"
+            value={values.price}
+            onChange={set("price")}
+            error={errors.price}
+          />
+        </div>
+
+        <Field
+          label="Product link"
+          type="url"
+          placeholder="https://"
+          value={values.productLink}
+          onChange={set("productLink")}
+          hint="Optional — where you bought it, so you can find it again."
+        />
       </div>
-    </div>
+    </Modal>
   );
 };
 

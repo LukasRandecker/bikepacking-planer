@@ -1,94 +1,131 @@
 import { useRef, useState } from "react";
 import axios from "axios";
 
+import Modal from "../ui/Modal.jsx";
+import { Button, Note } from "../ui/Controls.jsx";
+import { IconUpload } from "../ui/Icons.jsx";
+
+const MAX_BYTES = 10 * 1024 * 1024;
+
 const Upload_GPX_Popup = ({ onClose, onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
-  const [gpxFileName, setGpxFileName] = useState("");
+  const [busy, setBusy] = useState(false);
   const fileInputRef = useRef(null);
+
+  /* The upload endpoints are the app's most open surface, so the client
+     checks type and size before the request and the server checks again. */
+  const takeFile = (candidate) => {
+    if (!candidate) return;
+    if (!candidate.name.toLowerCase().endsWith(".gpx")) {
+      setError(`“${candidate.name}” is not a GPX file. Export the track as GPX and try again.`);
+      setFile(null);
+      return;
+    }
+    if (candidate.size > MAX_BYTES) {
+      setError(
+        `That track is ${(candidate.size / 1024 / 1024).toFixed(1)} MB. The limit is 10 MB.`
+      );
+      setFile(null);
+      return;
+    }
+    setError("");
+    setFile(candidate);
+  };
 
   const handleUpload = async () => {
     if (!file) {
-      setError("Bitte eine GPX-Datei auswählen");
+      setError("Choose a GPX file first.");
       return;
     }
 
     const formData = new FormData();
     formData.append("gpx", file);
 
+    setBusy(true);
     try {
       const res = await axios.post(
         "http://localhost:3030/bikepacking/upload",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-
-      if (onUploadSuccess) {
-        onUploadSuccess(res.data);
-        setGpxFileName(res.data.fileName);
-      }
+      onUploadSuccess?.(res.data);
       onClose();
     } catch (err) {
       console.error(err);
-      setError("Upload fehlgeschlagen");
+      setError(
+        err.response?.status === 413
+          ? "The server rejected the file as too large."
+          : "The upload failed. Check that the server is running on port 3030, then try again."
+      );
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-79 md:w-99 rounded-xl p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-xl">
-          ✕
-        </button>
+    <Modal
+      onClose={onClose}
+      title="Upload a GPX track"
+      code="Tour · Route"
+      footer={
+        <Button
+          variant="clay"
+          onClick={handleUpload}
+          busy={busy}
+          disabled={!file}
+          className="w-full"
+        >
+          Plot the track
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {error ? <Note tone="error">{error}</Note> : null}
 
-        <h2 className="text-2xl font-semibold mb-4 text-center">
-          GPX-Datei hochladen
-        </h2>
-
-        <div
-          onClick={() => fileInputRef.current.click()}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            setFile(e.dataTransfer.files[0]);
-            setError("");
+            takeFile(e.dataTransfer.files[0]);
           }}
-          className="
-            border-2 border-dashed border-gray-400 rounded-lg
-            p-6 text-center cursor-pointer
-            hover:border-black transition
-            mb-3
-          "
+          className="m-grid flex min-h-[9rem] w-full flex-col items-center justify-center gap-2 border border-dashed border-ink/50 p-5 text-center transition-colors duration-150 hover:border-ink"
         >
-          <p className="text-gray-600">
-            {file ? `📄 ${file.name}` : "GPX-Datei hier ablegen oder klicken"}
-          </p>
-          <p className="text-sm text-gray-400 mt-1">Nur .gpx Dateien</p>
-        </div>
+          <IconUpload size={22} />
+          {file ? (
+            <>
+              <span className="t-mono break-all">{file.name}</span>
+              <span className="t-label">
+                {(file.size / 1024).toFixed(0)} KB · ready
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="t-label t-label--ink">
+                Drop a GPX file or browse
+              </span>
+              <span className="t-label">.gpx only · up to 10 MB</span>
+            </>
+          )}
+        </button>
 
         <input
           ref={fileInputRef}
           type="file"
-          accept=".gpx"
-          className="hidden"
-          onChange={(e) => {
-            setFile(e.target.files[0]);
-            setError("");
-          }}
+          accept=".gpx,application/gpx+xml"
+          className="sr-only"
+          tabIndex={-1}
+          onChange={(e) => takeFile(e.target.files[0])}
         />
 
-        {error && (
-          <div className="text-red-600 text-sm mb-3 text-center">{error}</div>
-        )}
-
-        <button
-          onClick={handleUpload}
-          className="w-full bg-black text-white py-2 rounded-lg uppercase"
-        >
-          Upload
-        </button>
+        <p className="t-label">
+          Distance and climb are read from the file — nothing is typed in by
+          hand.
+        </p>
       </div>
-    </div>
+    </Modal>
   );
 };
 

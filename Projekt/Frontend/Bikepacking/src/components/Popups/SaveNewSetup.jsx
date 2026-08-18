@@ -1,51 +1,48 @@
 import { useState } from "react";
 
+import Modal from "../ui/Modal.jsx";
+import { Button, Field } from "../ui/Controls.jsx";
+
 const NewSetup_Popup = ({ onClose, onSave, initialMessage }) => {
   const [setupName, setSetupName] = useState("");
   const [error, setError] = useState(initialMessage || "");
 
-  const handleSubmit = () => {
-    setError("");
+  const handleSubmit = (e) => {
+    e?.preventDefault();
     if (!setupName.trim()) {
-      setError("Bitte gib einen Namen für das Setup ein");
+      setError("Give the setup a name so you can find it again.");
       return;
     }
+    setError("");
     onSave(setupName.trim());
-    setSetupName("");
-    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-80 md:w-96 rounded-xl p-6 relative space-y-4">
-        <button onClick={onClose} className="absolute top-4 right-4 text-xl">
-          ✕
-        </button>
-
-        <h2 className="text-2xl font-semibold text-center">
-          Neues Setup erstellen
-        </h2>
-
-        <input
+    <Modal
+      onClose={onClose}
+      title="Name this setup"
+      code="Packlist · New"
+      footer={
+        <Button variant="clay" onClick={handleSubmit} className="w-full">
+          Save setup
+        </Button>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Field
+          label="Setup name"
           type="text"
-          placeholder="Setup-Name"
+          placeholder="e.g. Summer gravel, 4 nights"
           value={setupName}
           onChange={(e) => setSetupName(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2"
+          error={error || undefined}
+          hint="Saved to your account with everything currently on the list."
         />
-
-        {error && (
-          <div className="text-red-600 text-sm text-center">{error}</div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-black text-white py-2 rounded-lg uppercase"
-        >
-          Erstellen
+        <button type="submit" className="sr-only" tabIndex={-1}>
+          Save setup
         </button>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 };
 

@@ -1,8 +1,14 @@
+import { useEffect, useId, useState } from "react";
 import packlist_img from "../../assets/NoImage.jpg";
-import { Trash2, Link as LinkIcon } from "lucide-react";
-import { useState } from "react";
+import { IconLink, IconTrash } from "../ui/Icons.jsx";
+
+/**
+ * One line of the schedule. On wide screens the row aligns to the column
+ * headers above it and the field labels retire into screen-reader text; on
+ * narrow screens the labels come back, because a bare column of numbers with
+ * no headings is not a table, it is a guess.
+ */
 export default function Packlist_Item({
-  _id,
   Itemname: initialName,
   IMG,
   Weight: initialWeight,
@@ -12,72 +18,99 @@ export default function Packlist_Item({
   onChange,
 }) {
   const [Itemname, setItemname] = useState(initialName || "");
-  const [Weight, setWeight] = useState(initialWeight || "");
-  const [Price, setPrice] = useState(initialPrice || "");
+  const [Weight, setWeight] = useState(initialWeight ?? "");
+  const [Price, setPrice] = useState(initialPrice ?? "");
+  const id = useId();
+
+  useEffect(() => setItemname(initialName || ""), [initialName]);
+  useEffect(() => setWeight(initialWeight ?? ""), [initialWeight]);
+  useEffect(() => setPrice(initialPrice ?? ""), [initialPrice]);
+
+  const commit = () => onChange?.({ Itemname, Weight, Price });
+
+  const field = (key, label, props) => (
+    <div className="flex flex-col gap-1 min-w-0">
+      <label htmlFor={`${id}-${key}`} className="t-label lg:sr-only">
+        {label}
+      </label>
+      <input
+        id={`${id}-${key}`}
+        className="c-input"
+        onBlur={commit}
+        {...props}
+      />
+    </div>
+  );
 
   return (
-    <div className="w-full max-w-md lg:max-w-4xl rounded-2xl border border-gray-300 bg-gray-100 p-3 shadow-sm">
-      <div className="grid grid-cols-1 gap-2 lg:grid-cols-[auto_1fr_1fr_1fr_auto_auto] lg:items-center">
-        {/* Bild */}
-        <div className="flex justify-center items-center lg:flex-none">
-          <img
-            src={IMG ? `http://localhost:3030${IMG}` : packlist_img}
-            alt={Itemname}
-            className="h-40 w-40 lg:h-20 lg:w-20 rounded-lg border border-gray-300 object-contain"
-          />
-        </div>
-
-
-        {/* Editable Fields */}
-        <input
-          type="text"
-          value={Itemname}
-          onChange={(e) => setItemname(e.target.value)}
-          onBlur={() => onChange && onChange({ Itemname, Weight, Price })}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+    <li className="grid grid-cols-1 items-end gap-3 border-b border-rule bg-sheet p-3 last:border-b-0 lg:grid-cols-[4rem_minmax(0,1fr)_7rem_7rem_auto] lg:gap-4">
+      <div className="m-plate h-16 w-16 flex-none justify-self-start border-rule">
+        <img
+          src={IMG ? `http://localhost:3030${IMG}` : packlist_img}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="object-contain"
+          onError={(e) => {
+            if (e.currentTarget.src !== packlist_img)
+              e.currentTarget.src = packlist_img;
+          }}
         />
-
-        <input
-          type="number"
-          value={Weight}
-          onChange={(e) => setWeight(e.target.value)}
-          onBlur={() => onChange && onChange({ Itemname, Weight, Price })}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-        />
-
-        <input
-          type="number"
-          value={Price}
-          onChange={(e) => setPrice(e.target.value)}
-          onBlur={() => onChange && onChange({ Itemname, Weight, Price })}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-        />
-
-        {/* Delete + Link */}
-<div className="flex gap-2 justify-end items-center">
-  {/* Delete Button */}
-  <button
-    onClick={onDelete}
-    className="rounded-lg border border-gray-300 p-2 hover:bg-gray-100"
-  >
-    <Trash2 size={18} />
-  </button>
-
-  {/* Link Button */}
-  {Link && (
-    <a
-      href={Link}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-100"
-    >
-      <LinkIcon size={16} />
-      Link
-    </a>
-  )}
-</div>
-
       </div>
-    </div>
+
+      {field("name", "Item", {
+        type: "text",
+        value: Itemname,
+        placeholder: "Item name",
+        onChange: (e) => setItemname(e.target.value),
+      })}
+
+      {field("weight", "Weight (g)", {
+        type: "number",
+        min: 0,
+        inputMode: "numeric",
+        value: Weight,
+        placeholder: "g",
+        onChange: (e) => setWeight(e.target.value),
+      })}
+
+      {field("price", "Price (EUR)", {
+        type: "number",
+        min: 0,
+        step: "0.01",
+        inputMode: "decimal",
+        value: Price,
+        placeholder: "EUR",
+        onChange: (e) => setPrice(e.target.value),
+      })}
+
+      <div className="flex items-center gap-2 justify-self-end">
+        {Link ? (
+          <a
+            href={Link}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="c-btn c-btn--quiet c-btn--icon no-underline"
+            aria-label={`Open the product page for ${Itemname || "this item"} in a new tab`}
+          >
+            <IconLink size={16} />
+          </a>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="m-hatch h-11 w-11 flex-none border border-rule"
+          />
+        )}
+
+        <button
+          type="button"
+          onClick={onDelete}
+          className="c-btn c-btn--quiet c-btn--icon"
+          aria-label={`Remove ${Itemname || "this item"} from the list`}
+        >
+          <IconTrash size={16} />
+        </button>
+      </div>
+    </li>
   );
 }

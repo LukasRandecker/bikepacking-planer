@@ -7,16 +7,23 @@ import Footer from "./components/Footer/Footer.jsx";
 import { UserContext } from "./Context/UserContext.jsx";
 import { TourFormProvider } from "./Context/TourFormContext.jsx";
 
-
 function App() {
   const [user, setUser] = useState(() => sessionStorage.getItem("userId"));
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
       <TourFormProvider>
-        <div>
+        <div className="sheet-shell">
+          <a
+            href="#main"
+            className="c-btn c-btn--clay c-skip"
+          >
+            Skip to content
+          </a>
           <NavBar />
-          <Outlet />
+          <main id="main" className="flex-1">
+            <Outlet />
+          </main>
           <Footer />
         </div>
       </TourFormProvider>

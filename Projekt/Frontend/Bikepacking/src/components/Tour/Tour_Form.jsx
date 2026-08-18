@@ -1,6 +1,13 @@
 import { useContext } from "react";
-import { TourFormContext } from "../../Context/TourFormContext";
+import { TourFormContext } from "../../Context/TourFormContext.jsx";
+import { Field, SegmentedChoice } from "../ui/Controls.jsx";
 
+/**
+ * The title block of the tour: the fields that describe the ride the route
+ * alone cannot. Every either/or is one segmented strip — the pill toggles this
+ * replaced were the only round things left on the sheet, and they hid which
+ * side was actually selected.
+ */
 const Tour_Form = () => {
   const {
     tourName,
@@ -19,128 +26,78 @@ const Tour_Form = () => {
     setMode,
   } = useContext(TourFormContext);
 
-  const toggleRideType = () => {
-    setRideType((prev) => (prev === "BIKEPACKING" ? "RACE" : "BIKEPACKING"));
-  };
-
-  const toggleMode = () => {
-    setMode((prev) => (prev === "SOLO" ? "GROUP" : "SOLO"));
-  };
+  const datesOutOfOrder =
+    startDate && endDate && new Date(endDate) < new Date(startDate);
 
   return (
-    <div className="mt-6">
-      <div className="flex flex-col md:flex-row lg:flex-col gap-6">
-        <div className="flex-1 flex flex-col gap-6 md:gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="tourName" className="text-sm font-medium ">
-              Tourname
-            </label>
-            <input
-              type="text"
-              id="tourName"
-              className="px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-              placeholder="NAME YOUR TOUR"
-              value={tourName}
-              onChange={(e) => setTourName(e.target.value)}
-            />
-          </div>
+    <div className="mt-6 flex flex-col gap-6">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          label="Tour name"
+          id="tourName"
+          type="text"
+          placeholder="Name your tour"
+          value={tourName}
+          onChange={(e) => setTourName(e.target.value)}
+          className="sm:col-span-2"
+        />
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="dateRange" className="text-sm font-medium">
-              Date
-            </label>
-            <input
-              type="date"
-              id="startDate"
-              className="px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <input
-              type="date"
-              id="endDate"
-              className="px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-        </div>
+        <Field
+          label="Start date"
+          id="startDate"
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
 
-        <div className="flex flex-col md:w-2/5 md:ml-5 gap-6 md:gap-4 justify-start lg:ml-0 lg:f">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Bike</span>
-            <div className="flex gap-4 text-sm">
-              {["MTB", "GRAVEL", "ROAD"].map((type) => (
-                <label key={type} className="flex items-center gap-1">
-                  <input
-                    type="radio"
-                    name="bikeType"
-                    checked={bikeType === type}
-                    onChange={() => setBikeType(type)}
-                  />
-                  {type}
-                </label>
-              ))}
-            </div>
-          </div>
+        <Field
+          label="End date"
+          id="endDate"
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          error={
+            datesOutOfOrder
+              ? "The end date falls before the start date."
+              : undefined
+          }
+        />
+      </div>
 
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium">Setup Style</span>
-            <div className="flex gap-4 text-sm">
-              {["INDOOR", "OUTDOOR", "MIXED"].map((setup) => (
-                <label key={setup} className="flex items-center gap-1">
-                  <input
-                    type="radio"
-                    name="sleepSetup"
-                    checked={sleepSetup === setup}
-                    onChange={() => setSleepSetup(setup)}
-                  />
-                  {setup}
-                </label>
-              ))}
-            </div>
-          </div>
+      <div className="grid gap-6 border-t border-rule pt-6 sm:grid-cols-2">
+        <SegmentedChoice
+          legend="Bike"
+          name="bikeType"
+          value={bikeType}
+          onChange={setBikeType}
+          options={["MTB", "GRAVEL", "ROAD"]}
+        />
 
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium mr-4">Type:</span>
-              <div
-                className="relative w-44 h-8 lg:h-10 bg-gray-300 rounded-full cursor-pointer"
-                onClick={toggleRideType}
-              >
-                <div
-                  className="z-10 absolute top-0.5 h-7 lg:h-9 px-5 bg-black text-white rounded-full flex items-center justify-center text-xs transition-all duration-300"
-                  style={{ left: rideType === "RACE" ? "60%" : "0%" }}
-                >
-                  {rideType}
-                </div>
-                <div className="absolute fit-content inset-0 flex items-center justify-between px-2 text-xs text-gray-600">
-                  <span>BIKEPACKING</span>
-                  <span>RACE</span>
-                </div>
-              </div>
-            </div>
+        <SegmentedChoice
+          legend="Sleep setup"
+          name="sleepSetup"
+          value={sleepSetup}
+          onChange={setSleepSetup}
+          options={["INDOOR", "OUTDOOR", "MIXED"]}
+        />
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium mr-4">Mode:</span>
-              <div
-                className="relative w-35 h-8 lg:h-10 bg-gray-300 rounded-full cursor-pointer"
-                onClick={toggleMode}
-              >
-                <div
-                  className="z-10 absolute top-0.5 h-7 lg:h-9 px-5 bg-black text-white rounded-full flex items-center justify-center text-xs transition-all duration-300"
-                  style={{ left: mode === "SOLO" ? "50%" : "0%" }}
-                >
-                  {mode}
-                </div>
-                <div className="absolute fit-content inset-0 flex items-center justify-between px-2 text-xs text-gray-600">
-                  <span>GROUP</span>
-                  <span>SOLO</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SegmentedChoice
+          legend="Ride type"
+          name="rideType"
+          value={rideType}
+          onChange={setRideType}
+          options={["BIKEPACKING", "RACE"]}
+          accent
+        />
+
+        <SegmentedChoice
+          legend="Riding as"
+          name="tourMode"
+          value={mode}
+          onChange={setMode}
+          options={["SOLO", "GROUP"]}
+          accent
+        />
       </div>
     </div>
   );

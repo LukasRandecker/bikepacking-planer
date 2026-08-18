@@ -1,8 +1,814 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   PLANBLATT — the design system of Bikepacking.
+   A drawing sheet: sheet ground, hairline rules, a title block, a drawing
+   area, a schedule of parts. Everything sits on the module. Nothing is round.
+   ========================================================================= */
+
+/* --- Faces ---------------------------------------------------------------
+   Archivo (Omnibus-Type, OFL) carries weight 100-900 and width 62-125% in one
+   file — signage caps and running text from a single 90 KB face.
+   Martian Mono (Evil Martian, OFL) carries every measured value: grams, euros,
+   kilometres, coordinates, codes. Two families, latin subset, self-hosted.
+   Licences ship beside the files in src/assets/fonts/.
+   --------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Archivo Var";
+  src: url("./assets/fonts/archivo-latin-var.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martian Mono Var";
+  src: url("./assets/fonts/martian-mono-latin-var.woff2")
+    format("woff2-variations");
+  font-weight: 100 800;
+  font-stretch: 75% 112.5%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* Ground and ink — black and white is the base, nothing negotiable here. */
+  --color-sheet: #ffffff;
+  --color-field: #f1f0ed;
+  --color-field-deep: #e6e4df;
+  --color-ink: #101010;
+  --color-ink-soft: #4a4a46; /* 8.5:1 on sheet */
+  --color-ink-faint: #6e6e68; /* 5.1:1 on sheet */
+  --color-rule: #d6d5d0;
+  --color-rule-soft: #e8e7e3;
+
+  /* Earth accents, used by role and never for decoration.
+     Clay  = active, primary action, the ridden line, the measured figure —
+     now moss green, per the reference colour plate (2026-08-18 recolour).
+     Olive = confirmed, secondary series, saved state — now the earth brown
+     that clay used to carry. Token names kept so every c-btn--clay /
+     text-olive usage in components stays wired to its existing role.
+     Alarm = error only. */
+  --color-clay: #606c38; /* Dark Moss Green — 5.7:1 on sheet */
+  --color-clay-deep: #283618; /* Pakistan Green */
+  --color-clay-light: #8fa06a; /* 6.7:1 on ink */
+  --color-olive: #754317; /* deep Tiger's Eye — 8.2:1 on sheet */
+  --color-olive-light: #bc6c25; /* Tiger's Eye — 4.8:1 on ink */
+  --color-alarm: #8e1f14; /* 8.9:1 on sheet */
+  --color-alarm-light: #d9705f; /* 5.3:1 on ink */
+
+  /* Ink-ground text */
+  --color-paper: #ffffff;
+  --color-paper-soft: #b5b4ae; /* 9.2:1 on ink */
+  --color-rule-dark: #3a3a36;
+
+  --font-sans: "Archivo Var", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Martian Mono Var", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Radii are zero. The token exists so nothing can quietly reintroduce one. */
+  --radius-none: 0px;
+
+  --ease-plot: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 :root {
+  --sheet-max: 110rem;
+  --gutter: clamp(1.25rem, 4vw, 4.5rem);
+  --dur-fast: 140ms;
+  --dur: 260ms;
+  --dur-slow: 560ms;
+
+  color-scheme: light;
+  scrollbar-color: var(--color-ink) var(--color-field);
+  scrollbar-width: thin;
+}
+
+/* --- Base --------------------------------------------------------------- */
+
+/* Layered on purpose: an unlayered rule beats every rule in @layer components
+   regardless of specificity. `color: inherit` on button/input sat unlayered
+   here and silently won over every hover/variant color in the control layer
+   below — the "Log out" button's own hover text was invisible against its
+   own fill because of exactly this. */
+@layer base {
+
+*,
+*::before,
+*::after {
+  border-radius: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
   margin: 0;
-  padding: 0;
-  width: 100vw;
-  overflow-x: hidden;
+  background: var(--color-field-deep);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-clay);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-field);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink);
+  border: 3px solid var(--color-field);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-clay);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-clay);
+  outline-offset: 2px;
+}
+
+.on-ink :focus-visible,
+.on-ink:focus-visible {
+  outline-color: var(--color-clay-light);
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+  caret-color: var(--color-clay);
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+}
+
+@layer components {
+/* ============================================================================
+   LAYOUT — the sheet
+   ========================================================================= */
+
+.sheet-shell {
+  max-width: var(--sheet-max);
+  margin-inline: auto;
+  background: var(--color-sheet);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Above the sheet's own width the paper reads as paper: a bordered sheet
+   lying on the desk rather than a stretched background. */
+@media (min-width: 1761px) {
+  .sheet-shell {
+    border-inline: 1px solid var(--color-ink);
+  }
+}
+
+.sheet-pad {
+  padding-inline: var(--gutter);
+}
+
+/* ============================================================================
+   TYPE
+   ========================================================================= */
+
+/* Signage caps. Wide, tight, structural — the type is a mass, not a heading. */
+.t-display {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-stretch: 115%;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  /* Below lg the headline owns the full sheet width and can run large; from lg
+     it shares the row with the plate, so the ramp flattens. nowrap is the
+     contract — the three lines are three statements, never six fragments. */
+  font-size: clamp(1.875rem, 8.4vw, 4.5rem);
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .t-display {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+  }
+}
+
+.t-h1 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-stretch: 112%;
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+  font-size: clamp(1.75rem, 4.4vw, 3rem);
+  text-wrap: balance;
+}
+
+.t-h2 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-stretch: 110%;
+  text-transform: uppercase;
+  letter-spacing: -0.018em;
+  line-height: 1.04;
+  font-size: clamp(1.3125rem, 2.6vw, 1.875rem);
+  text-wrap: balance;
+}
+
+.t-h3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-stretch: 106%;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  line-height: 1.15;
+  font-size: 1.0625rem;
+}
+
+.t-body {
+  max-width: 68ch;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+/* Field labels from the title block. Only ever a label for an adjacent value —
+   never an eyebrow parked above a heading. */
+.t-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-stretch: 87.5%;
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--color-ink-faint);
+}
+
+.t-label--ink {
+  color: var(--color-ink);
+}
+.t-label--clay {
+  color: var(--color-clay);
+}
+.t-label--paper {
+  color: var(--color-paper-soft);
+}
+
+/* Every measured value on the sheet. */
+.t-figure {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-stretch: 87.5%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.t-figure--lg {
+  font-size: clamp(1.5rem, 3.4vw, 2.375rem);
+  font-weight: 600;
+}
+
+.t-mono {
+  font-family: var(--font-mono);
+  font-stretch: 87.5%;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+}
+
+/* ============================================================================
+   MATERIALS
+   ========================================================================= */
+
+/* Faint plotting grid. Used behind empty drawing areas so a blank region
+   still reads as sheet waiting for a drawing. */
+.m-grid {
+  background-image: linear-gradient(
+      to right,
+      var(--color-rule-soft) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, var(--color-rule-soft) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* 45° hatch — the drawing convention for a region that carries no data. */
+.m-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-rule) 0 1px,
+    transparent 1px 8px
+  );
+}
+
+.m-hatch--ink {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--color-rule-dark) 0 1px,
+    transparent 1px 9px
+  );
+}
+
+/* A photograph enters the sheet as a plate: locked to the module, framed by a
+   hairline, captioned. It is never a backdrop and never bleeds under text. */
+.m-plate {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-field);
+  border: 1px solid var(--color-ink);
+}
+
+.m-plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(0.28) contrast(1.06);
+  transition: filter var(--dur-slow) var(--ease-plot),
+    transform var(--dur-slow) var(--ease-plot);
+}
+
+.m-plate--live:hover img,
+.m-plate--live:focus-within img {
+  filter: grayscale(0) contrast(1.02);
+}
+
+/* ============================================================================
+   CONTROLS
+   ========================================================================= */
+
+.c-btn {
+  --btn-fg: var(--color-paper);
+  --btn-bg: var(--color-ink);
+  --btn-edge: var(--color-ink);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 2.75rem; /* 44px touch target */
+  padding-inline: 1.125rem;
+  border: 1px solid var(--btn-edge);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--font-mono);
+  font-stretch: 87.5%;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color var(--dur) var(--ease-plot),
+    border-color var(--dur) var(--ease-plot);
+}
+
+/* The fill is plotted across, left to right — the sheet's one hover gesture. */
+.c-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--btn-fg);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur) var(--ease-plot);
+}
+
+.c-btn:hover:not(:disabled)::before,
+.c-btn:focus-visible:not(:disabled)::before {
+  transform: scaleX(1);
+}
+
+.c-btn:hover:not(:disabled),
+.c-btn:focus-visible:not(:disabled) {
+  color: var(--btn-bg);
+}
+
+.c-btn:active:not(:disabled) {
+  translate: 0 1px;
+}
+
+.c-btn:disabled,
+.c-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: var(--color-field);
+  color: var(--color-ink-faint);
+  border-color: var(--color-rule);
+}
+
+.c-btn--clay {
+  --btn-bg: var(--color-clay);
+  --btn-edge: var(--color-clay);
+}
+
+.c-btn--ghost {
+  --btn-bg: transparent;
+  --btn-fg: var(--color-ink);
+  --btn-edge: var(--color-ink);
+}
+.c-btn--ghost::before {
+  background: var(--color-ink);
+}
+.c-btn--ghost:hover:not(:disabled),
+.c-btn--ghost:focus-visible:not(:disabled) {
+  color: var(--color-paper);
+}
+
+.c-btn--quiet {
+  --btn-bg: transparent;
+  --btn-fg: var(--color-ink-soft);
+  --btn-edge: var(--color-rule);
+}
+.c-btn--quiet::before {
+  background: var(--color-ink);
+}
+.c-btn--quiet:hover:not(:disabled),
+.c-btn--quiet:focus-visible:not(:disabled) {
+  color: var(--color-paper);
+  border-color: var(--color-ink);
+}
+
+.c-btn--icon {
+  padding-inline: 0;
+  width: 2.75rem;
+  flex: none;
+}
+
+/* Fixed, not absolute: an off-screen absolute element still counts toward the
+   document's scroll width and hands you a phantom horizontal scrollbar. */
+.c-skip {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 60;
+  transform: translateY(-300%);
+  transition: transform var(--dur) var(--ease-plot);
+}
+
+.c-skip:focus-visible {
+  transform: translateY(0);
+}
+
+/* Inputs are ruled fields, not boxes: the value sits on a line. */
+.c-input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-sheet);
+  border: 1px solid var(--color-rule);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-stretch: 87.5%;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  transition: border-color var(--dur-fast) var(--ease-plot),
+    background-color var(--dur-fast) var(--ease-plot);
+}
+
+.c-input::placeholder {
+  color: var(--color-ink-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+}
+
+.c-input:hover:not(:disabled) {
+  border-color: var(--color-ink-faint);
+}
+
+.c-input:focus {
+  outline: none;
+  border-color: var(--color-clay);
+  box-shadow: inset 0 -2px 0 0 var(--color-clay);
+}
+
+.c-input:disabled {
+  background: var(--color-field);
+  color: var(--color-ink-faint);
+}
+
+.c-input[aria-invalid="true"] {
+  border-color: var(--color-alarm);
+  box-shadow: inset 0 -2px 0 0 var(--color-alarm);
+}
+
+.c-input[type="date"] {
+  text-transform: uppercase;
+}
+
+/* Segmented choice — radios rendered as abutting cells of one ruled strip.
+   Replaces every pill toggle and every native select in the app. */
+.c-seg {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-ink);
+  background: var(--color-sheet);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.c-seg__opt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding-inline: 0.875rem;
+  border-left: 1px solid var(--color-rule);
+  font-family: var(--font-mono);
+  font-stretch: 87.5%;
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-plot),
+    color var(--dur-fast) var(--ease-plot);
+}
+
+.c-seg__opt:first-child {
+  border-left: 0;
+}
+
+.c-seg__opt:hover {
+  background: var(--color-field);
+  color: var(--color-ink);
+}
+
+.c-seg__opt:has(:checked) {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.c-seg__opt--clay:has(:checked) {
+  background: var(--color-clay);
+  color: var(--color-paper);
+}
+
+.c-seg__opt input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.c-seg__opt:has(:focus-visible) {
+  outline: 2px solid var(--color-clay);
+  outline-offset: -2px;
+}
+
+/* ============================================================================
+   CELLS — the title block grammar
+   Cells abut and share hairline edges. No gaps, no shadows, no corners.
+   ========================================================================= */
+
+.c-cell {
+  padding: 0.875rem 1rem;
+  min-width: 0;
+}
+
+.c-cellgrid {
+  display: grid;
+  gap: 1px;
+  background: var(--color-rule);
+  border: 1px solid var(--color-ink);
+}
+
+.c-cellgrid > * {
+  background: var(--color-sheet);
+}
+
+.c-cellgrid--ink {
+  background: var(--color-rule-dark);
+  border-color: var(--color-rule-dark);
+}
+.c-cellgrid--ink > * {
+  background: var(--color-ink);
+}
+
+/* Magnitude bar — a measured quantity drawn to scale beside its figure, so
+   5167 km looks like 5167 km next to 500 km instead of merely reading larger. */
+.c-bar {
+  position: relative;
+  height: 3px;
+  background: var(--color-rule);
+  overflow: hidden;
+}
+
+.c-bar__fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  background: var(--color-clay);
+  transform-origin: left;
+  animation: plot-x var(--dur-slow) var(--ease-plot) both;
+}
+
+.c-bar__fill--olive {
+  background: var(--color-olive);
+}
+
+.c-bar__fill--ink {
+  background: var(--color-ink);
+}
+
+/* ============================================================================
+   MOTION — "plotter draw". Lines arrive by being drawn from their origin.
+   Nothing scales, nothing bounces, nothing fades in from invisible content.
+   ========================================================================= */
+
+@keyframes plot-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes plot-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes plot-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes plot-drop {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes plot-lift {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.a-rule {
+  transform-origin: left;
+  animation: plot-x var(--dur-slow) var(--ease-plot) both;
+}
+
+.a-wipe {
+  animation: plot-wipe var(--dur-slow) var(--ease-plot) both;
+}
+
+.a-drop {
+  animation: plot-drop var(--dur) var(--ease-plot) both;
+}
+
+.a-lift {
+  animation: plot-lift var(--dur) var(--ease-plot) both;
+}
+
+.a-d1 {
+  animation-delay: 90ms;
+}
+.a-d2 {
+  animation-delay: 180ms;
+}
+.a-d3 {
+  animation-delay: 270ms;
+}
+.a-d4 {
+  animation-delay: 360ms;
+}
+
+/* Accordions open by growing their row, not by animating a guessed max-height. */
+.a-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur) var(--ease-plot);
+}
+
+.a-collapse[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.a-collapse > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+}
+
+/* ============================================================================
+   LEAFLET — the map is a drawing area, so it obeys the sheet.
+   ========================================================================= */
+
+.leaflet-container {
+  background: var(--color-field) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.6875rem !important;
+}
+
+.leaflet-container a {
+  color: var(--color-clay) !important;
+}
+
+.leaflet-control-zoom a {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 30px !important;
+  background: var(--color-sheet) !important;
+  color: var(--color-ink) !important;
+  border: 1px solid var(--color-ink) !important;
+  border-bottom: 0 !important;
+  font-weight: 500 !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: 1px solid var(--color-ink) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--color-ink) !important;
+  color: var(--color-paper) !important;
+}
+
+.leaflet-bar,
+.leaflet-control-attribution {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: var(--color-ink-faint) !important;
+  padding: 2px 6px !important;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================================
+   PRINT — the sheet was always meant to be printed.
+   ========================================================================= */
+
+@media print {
+  body {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
 }
