@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 
 import Modal from "../ui/Modal.jsx";
 import { Button, Field, Note } from "../ui/Controls.jsx";
+import api, { errorMessage } from "../../lib/api.js";
 
-const API = "http://localhost:3030/bikepacking";
+const MIN_PASSWORD = 8;
 
+/**
+ * Ein- und Registrieren.
+ *
+ * Das Passwort wird hier nur eingetippt und weggeschickt — verglichen wird es
+ * auf dem Server gegen einen bcrypt-Hash. Der Client bekommt es nie zu sehen,
+ * und die Sitzung kommt als httpOnly-Cookie zurück, das JavaScript nicht lesen
+ * kann.
+ */
 const Login_Popup = ({ onClose, onLoginSuccess, loginMessage }) => {
   const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("");
@@ -19,38 +27,33 @@ const Login_Popup = ({ onClose, onLoginSuccess, loginMessage }) => {
   useEffect(() => setNotice(loginMessage || ""), [loginMessage]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setError("");
 
     if (!username || !pw) {
       setError("Enter both a username and a password.");
       return;
     }
+    if (!isLogin && pw.length < MIN_PASSWORD) {
+      setError(`Pick a password of at least ${MIN_PASSWORD} characters.`);
+      return;
+    }
 
     setBusy(true);
     try {
-      if (isLogin) {
-        const res = await axios.get(`${API}/users/username/${username}`);
-        if (res.data.pw !== pw) {
-          setError("That password does not match this username.");
-          return;
-        }
-        sessionStorage.setItem("userId", res.data._id);
-        onLoginSuccess(res.data);
-      } else {
-        const res = await axios.post(`${API}/users`, { username, pw });
-        sessionStorage.setItem("userId", res.data._id);
-        onLoginSuccess(res.data);
-      }
+      const { data } = await api.post(
+        isLogin ? "/users/login" : "/users/register",
+        { username, pw }
+      );
+      onLoginSuccess(data);
       onClose();
     } catch (err) {
-      const status = err.response?.status;
-      if (status === 404)
-        setError(`No account called “${username}”. Register instead?`);
-      else if (status === 400)
-        setError(`“${username}” is taken. Pick another name, or log in.`);
-      else
-        setError("The server did not answer. Check that it is running on port 3030.");
+      setError(
+        errorMessage(
+          err,
+          isLogin ? "The login failed." : "The account could not be created."
+        )
+      );
     } finally {
       setBusy(false);
     }
@@ -97,7 +100,7 @@ const Login_Popup = ({ onClose, onLoginSuccess, loginMessage }) => {
           autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          error={error && !username ? "Required" : undefined}
+          hint={isLogin ? undefined : "Letters, digits, dots, dashes and underscores."}
         />
 
         <Field
@@ -106,7 +109,7 @@ const Login_Popup = ({ onClose, onLoginSuccess, loginMessage }) => {
           autoComplete={isLogin ? "current-password" : "new-password"}
           value={pw}
           onChange={(e) => setPw(e.target.value)}
-          error={error && !pw ? "Required" : undefined}
+          hint={isLogin ? undefined : `At least ${MIN_PASSWORD} characters.`}
         />
 
         {/* Lets Enter submit the form; the visible action lives in the footer. */}

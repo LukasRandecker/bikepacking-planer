@@ -21,7 +21,7 @@ const LINKS = [
  * the drawing's own way of flagging the active view.
  */
 const NavBar = () => {
-  const { user, setUser } = useContext(UserContext);
+  const { user, setUser, logout } = useContext(UserContext);
   const { pathname, hash } = useLocation();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,15 +47,11 @@ const NavBar = () => {
     };
   }, [menuOpen]);
 
+  // Ausloggen heisst: der Server loescht das Cookie. Ein lokales Vergessen
+  // wuerde die Sitzung offen lassen.
   const handleLogout = () => {
-    sessionStorage.removeItem("userId");
-    setUser(null);
-  };
-
-  const handleLoginSuccess = (userData) => {
-    if (!userData?._id) return;
-    sessionStorage.setItem("userId", userData._id);
-    setUser(userData._id);
+    setMenuOpen(false);
+    logout();
   };
 
   return (
@@ -187,7 +183,10 @@ const NavBar = () => {
       {loginOpen ? (
         <Login_Popup
           onClose={() => setLoginOpen(false)}
-          onLoginSuccess={handleLoginSuccess}
+          onLoginSuccess={(userData) => {
+            setUser(userData);
+            setLoginOpen(false);
+          }}
         />
       ) : null}
     </header>

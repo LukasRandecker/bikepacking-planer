@@ -1,14 +1,14 @@
 import { useContext, useEffect, useId, useState } from "react";
-import axios from "axios";
 
 import Packlist_Item from "./Packlist_Item.jsx";
 import Packlist_NewItem from "./Packlist_NewItem.jsx";
+import Packlist_ItemPicker from "./Packlist_ItemPicker.jsx";
 import { MeasureBar } from "../ui/Sheet.jsx";
 import { Note } from "../ui/Controls.jsx";
 import { IconChevron, IconPlus } from "../ui/Icons.jsx";
 import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
-
-const API = "http://localhost:3030/bikepacking";
+import { UserContext } from "../../Context/UserContext.jsx";
+import api, { errorMessage } from "../../lib/api.js";
 
 const nf = (n, d = 0) =>
   Number(n || 0).toLocaleString("en-GB", {
@@ -25,9 +25,10 @@ const nf = (n, d = 0) =>
  */
 export default function Packlist_Group({ title, items = [], listId, totalWeight }) {
   const [open, setOpen] = useState(false);
-  const [showNewItem, setShowNewItem] = useState(false);
+  const [dialog, setDialog] = useState(null);
   const [error, setError] = useState("");
   const { removeItem, updateItem, addItem } = useContext(SetupItemsContext);
+  const { user } = useContext(UserContext);
   const panelId = useId();
 
   useEffect(() => {
@@ -39,23 +40,68 @@ export default function Packlist_Group({ title, items = [], listId, totalWeight 
 
   const handleRemove = async (itemId) => {
     setError("");
+    removeItem(title, itemId);
+
+    // Ohne offenes Setup gibt es serverseitig noch keine Liste, aus der etwas
+    // entfernt werden könnte — das passiert erst beim Speichern.
+    if (!listId) return;
     try {
-      await axios.delete(`${API}/itemlists/remove-item`, {
-        data: { listId, itemId },
-      });
-      removeItem(title, itemId);
-    } catch {
-      setError("That item could not be removed. Check the connection and try again.");
+      await api.delete("/itemlists/remove-item", { data: { listId, itemId } });
+    } catch (err) {
+      setError(errorMessage(err, "That item could not be removed from the saved setup."));
     }
   };
 
-  const handleUpdate = async (itemId, changes) => {
+  /**
+   * Gewicht und Preis ändern.
+   *
+   * Geteilte Einträge gehören allen: wer sie für seine Liste anpasst, bekommt
+   * eine eigene Kopie, statt den Eintrag für jeden anderen zu überschreiben.
+   * Nur was man selbst beigesteuert hat, lässt sich direkt ändern — der Server
+   * sieht das genauso (409), hier wird es nur nicht erst versucht.
+   */
+  const handleUpdate = async (item, changes) => {
     setError("");
-    updateItem(title, itemId, changes);
+
+    const mine = user && item.Owner && String(item.Owner) === String(user._id);
+    if (!mine) {
+      try {
+        const { data } = await api.post(`/items/${item._id}/fork`, changes);
+        updateItem(title, item._id, data);
+
+        if (listId) {
+          await api.put("/itemlists/add-item", {
+            listId,
+            itemId: data._id,
+            replaces: item._id,
+          });
+        }
+      } catch (err) {
+        setError(errorMessage(err, "The change could not be saved as your own copy."));
+      }
+      return;
+    }
+
+    updateItem(title, item._id, changes);
     try {
-      await axios.put(`${API}/items/${itemId}`, changes);
-    } catch {
-      setError("The change was not saved to the server. Reload to see the stored values.");
+      await api.put(`/items/${item._id}`, changes);
+    } catch (err) {
+      setError(
+        errorMessage(err, "The change was not saved. Reload to see the stored values.")
+      );
+    }
+  };
+
+  /** Ein Item aus dem Katalog auf die Liste holen. */
+  const handlePick = async (item) => {
+    setError("");
+    addItem(title, item);
+
+    if (!listId) return;
+    try {
+      await api.put("/itemlists/add-item", { listId, itemId: item._id });
+    } catch (err) {
+      setError(errorMessage(err, "The item was added, but not saved to the setup yet."));
     }
   };
 
@@ -63,24 +109,30 @@ export default function Packlist_Group({ title, items = [], listId, totalWeight 
   const handleCreate = async (newItem) => {
     setError("");
     try {
-      const form = new FormData();
-      form.append("image", newItem.imageFile);
-      const upload = await axios.post(`${API}/uploadImage`, form);
+      let imagePath = "";
+      if (newItem.imageFile) {
+        const form = new FormData();
+        form.append("image", newItem.imageFile);
+        const upload = await api.post("/uploadImage", form);
+        imagePath = upload.data.path;
+      }
 
-      const { data } = await axios.post(`${API}/items`, {
+      const { data } = await api.post("/items", {
         Categorie: title,
-        IMG: upload.data.path,
+        IMG: imagePath,
         Itemname: newItem.item,
+        Brand: newItem.brand,
+        Keywords: newItem.keywords,
         Link: newItem.productLink,
         Weight: Number(newItem.weight),
         Price: Number(newItem.price),
       });
 
-      addItem(title, data);
-      setShowNewItem(false);
+      await handlePick(data);
+      setDialog(null);
       return null;
-    } catch {
-      return "The item could not be saved. Check the image size and your connection, then try again.";
+    } catch (err) {
+      return errorMessage(err, "The item could not be saved. Check the image size, then try again.");
     }
   };
 
@@ -156,7 +208,7 @@ export default function Packlist_Group({ title, items = [], listId, totalWeight 
                     key={item._id}
                     {...item}
                     onDelete={() => handleRemove(item._id)}
-                    onChange={(changes) => handleUpdate(item._id, changes)}
+                    onChange={(changes) => handleUpdate(item, changes)}
                   />
                 ))}
               </ul>
@@ -169,7 +221,7 @@ export default function Packlist_Group({ title, items = [], listId, totalWeight 
             <div className="mt-3">
               <button
                 type="button"
-                onClick={() => setShowNewItem(true)}
+                onClick={() => setDialog("picker")}
                 className="c-btn c-btn--quiet"
               >
                 <IconPlus size={15} />
@@ -180,10 +232,20 @@ export default function Packlist_Group({ title, items = [], listId, totalWeight 
         </div>
       </div>
 
-      {showNewItem ? (
+      {dialog === "picker" ? (
+        <Packlist_ItemPicker
+          category={title}
+          addedIds={items.map((item) => item._id)}
+          onAdd={handlePick}
+          onCreateOwn={() => setDialog("new-item")}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+
+      {dialog === "new-item" ? (
         <Packlist_NewItem
           category={title}
-          onClose={() => setShowNewItem(false)}
+          onClose={() => setDialog(null)}
           onSave={handleCreate}
         />
       ) : null}

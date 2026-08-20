@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import axios from "axios";
+import api from "../../lib/api.js";
 
 import Modal from "../ui/Modal.jsx";
 import { Button, Note } from "../ui/Controls.jsx";
@@ -44,11 +44,9 @@ const Upload_GPX_Popup = ({ onClose, onUploadSuccess }) => {
 
     setBusy(true);
     try {
-      const res = await axios.post(
-        "http://localhost:3030/bikepacking/upload",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      const res = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       onUploadSuccess?.(res.data);
       onClose();
     } catch (err) {

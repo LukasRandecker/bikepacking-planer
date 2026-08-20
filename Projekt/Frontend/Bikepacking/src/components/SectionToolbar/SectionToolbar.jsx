@@ -1,12 +1,11 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
-import axios from "axios";
 
 import { SectionHead, Datum } from "../ui/Sheet.jsx";
 import { Button, Note } from "../ui/Controls.jsx";
-import { IconDownload, IconUpload } from "../ui/Icons.jsx";
+import { IconDownload, IconRedraw, IconUpload } from "../ui/Icons.jsx";
+import Modal from "../ui/Modal.jsx";
 import useSheetActions from "./useSheetActions.js";
 
-import Login_Popup from "../Popups/Login.jsx";
 import Upload_GPX_Popup from "../Popups/Upload_GPX.jsx";
 import LoadTourPopup from "../Popups/LoadTour.jsx";
 import LoadSetupPopup from "../Popups/LoadSetup.jsx";
@@ -14,6 +13,8 @@ import NewSetup_Popup from "../Popups/SaveNewSetup.jsx";
 
 import { UserContext } from "../../Context/UserContext.jsx";
 import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
+import { TourFormContext } from "../../Context/TourFormContext.jsx";
+import api from "../../lib/api.js";
 
 const nf = (n, digits = 0) =>
   Number(n || 0).toLocaleString("en-GB", {
@@ -31,16 +32,18 @@ export default function SectionToolbar({
   tourInfo,
   onUploadSuccess,
   onLoadSetup,
+  onReset,
 }) {
   const isTour = mode === "tour";
 
-  const { user, setUser } = useContext(UserContext);
-  const { setSetupItems, totalWeight, totalPrice } =
+  const { requireLogin } = useContext(UserContext);
+  const { setSetupItems, clearSetup, totalWeight, totalPrice } =
     useContext(SetupItemsContext);
+  const { tourName, startDate, endDate, activeTourId, resetTourForm } =
+    useContext(TourFormContext);
 
   const [feedback, setFeedback] = useState(null);
   const [dialog, setDialog] = useState(null);
-  const [loginMessage, setLoginMessage] = useState("");
   const timer = useRef(null);
 
   const notify = useCallback((tone, message) => {
@@ -58,11 +61,9 @@ export default function SectionToolbar({
 
   /** Every write needs an account; the gate is one place, not six buttons. */
   const guard = (run) => () => {
-    if (!user) {
-      setLoginMessage("Log in to save, load and upload.");
-      setDialog("login");
-      return;
-    }
+    if (!requireLogin(isTour
+      ? "Log in to create a tour, upload its GPX track and load it again."
+      : "Log in to build, save and export a packlist.")) return;
     run();
   };
 
@@ -71,8 +72,41 @@ export default function SectionToolbar({
     if (outcome === "needs-name") setDialog("new-setup");
   };
 
+  /**
+   * Steht auf dem Blatt überhaupt etwas? Ein leeres Blatt zu leeren ist keine
+   * Frage wert — dann läuft der Knopf ohne Rückfrage durch.
+   */
+  const hasContent = isTour
+    ? Boolean(tourName || startDate || endDate || activeTourId || tourInfo?.gpxFileName)
+    : itemCount > 0;
+
+  /** Leert nur die Anzeige. Gespeichertes bleibt auf dem Konto. */
+  const startFresh = () => {
+    if (isTour) {
+      resetTourForm();
+      onReset?.();
+    } else {
+      clearSetup();
+    }
+    setDialog(null);
+    setFeedback(null);
+    notify("success", isTour ? "Fresh tour sheet." : "Fresh packlist.");
+  };
+
+  const newButton = (
+    <Button
+      variant="quiet"
+      icon={IconRedraw}
+      onClick={() => (hasContent ? setDialog("confirm-reset") : startFresh())}
+      title={isTour ? "Empty the tour sheet" : "Empty the packlist"}
+    >
+      New
+    </Button>
+  );
+
   const actions = isTour ? (
     <>
+      {newButton}
       <Button variant="quiet" onClick={guard(() => setDialog("load-tour"))}>
         Load
       </Button>
@@ -93,6 +127,7 @@ export default function SectionToolbar({
     </>
   ) : (
     <>
+      {newButton}
       <Button variant="quiet" onClick={guard(() => setDialog("load-setup"))}>
         Load
       </Button>
@@ -166,19 +201,6 @@ export default function SectionToolbar({
         )}
       </div>
 
-      {dialog === "login" ? (
-        <Login_Popup
-          onClose={() => setDialog(null)}
-          loginMessage={loginMessage}
-          onLoginSuccess={(userData) => {
-            if (!userData?._id) return;
-            sessionStorage.setItem("userId", userData._id);
-            setUser(userData._id);
-            setDialog(null);
-          }}
-        />
-      ) : null}
-
       {dialog === "upload" ? (
         <Upload_GPX_Popup
           onClose={() => setDialog(null)}
@@ -205,14 +227,9 @@ export default function SectionToolbar({
           onClose={() => setDialog(null)}
           onLoadSetup={async (setupData) => {
             try {
-              const items = await Promise.all(
-                setupData.items.map((id) =>
-                  axios
-                    .get(`http://localhost:3030/bikepacking/items/${id}`)
-                    .then((res) => res.data)
-                )
-              );
-              const grouped = items.reduce((acc, item) => {
+              // Eine Anfrage für die ganze Liste statt einer pro Item.
+              const { data } = await api.get(`/itemlists/${setupData.id}/items`);
+              const grouped = data.items.reduce((acc, item) => {
                 if (!item?.Categorie) return acc;
                 (acc[item.Categorie] ??= []).push(item);
                 return acc;
@@ -221,13 +238,42 @@ export default function SectionToolbar({
               setSetupItems(grouped, setupData.id);
               onLoadSetup?.(setupData);
               setDialog(null);
-              notify("success", `Setup loaded — ${items.length} items.`);
+              notify("success", `Setup loaded — ${data.items.length} items.`);
             } catch {
               setDialog(null);
               notify("error", "The setup could not be loaded. Try again.");
             }
           }}
         />
+      ) : null}
+
+      {dialog === "confirm-reset" ? (
+        <Modal
+          onClose={() => setDialog(null)}
+          title={isTour ? "Empty the tour sheet?" : "Empty the packlist?"}
+          code={isTour ? "Tour · New" : "Packlist · New"}
+          footer={
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+              <Button variant="quiet" onClick={() => setDialog(null)}>
+                Keep what is there
+              </Button>
+              <Button variant="clay" onClick={startFresh}>
+                {isTour ? "Empty the sheet" : "Empty the list"}
+              </Button>
+            </div>
+          }
+        >
+          <p className="t-body text-[0.9375rem]">
+            {isTour
+              ? "The fields, the loaded track and the link to a saved tour are cleared, so the next save files a new tour."
+              : `All ${itemCount} items are taken off the sheet, and the next save asks for a new setup name.`}
+          </p>
+          <p className="t-label mt-4">
+            {activeTourId || (!isTour && itemCount > 0)
+              ? "Nothing is deleted from your account — this only empties what is on screen."
+              : "Nothing has been saved yet, so this cannot be undone."}
+          </p>
+        </Modal>
       ) : null}
 
       {dialog === "new-setup" ? (

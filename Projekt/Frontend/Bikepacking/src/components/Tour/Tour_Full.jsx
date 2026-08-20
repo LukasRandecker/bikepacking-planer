@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import SectionToolbar from "../SectionToolbar/SectionToolbar.jsx";
 import Tour_Form from "./Tour_Form.jsx";
-import { EmptyPlate } from "../ui/Sheet.jsx";
+import { EmptyPlate, LockedRegion } from "../ui/Sheet.jsx";
+import { UserContext } from "../../Context/UserContext.jsx";
 
 /**
  * The drawing area and its title block. The route is plotted twice — a heavy
@@ -12,6 +13,7 @@ import { EmptyPlate } from "../ui/Sheet.jsx";
  * and the frame around it is the plate frame used everywhere else.
  */
 function Tour_Full() {
+  const { user, requireLogin } = useContext(UserContext);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [tourInfo, setTourInfo] = useState({
     km: 0,
@@ -29,6 +31,12 @@ function Tour_Full() {
       name: data.tourName || "",
       gpxFileName: data.fileName || "",
     });
+  };
+
+  /** Karte und Eckdaten leeren — den Rest des Formulars räumt der Context. */
+  const handleReset = () => {
+    setRouteCoordinates([]);
+    setTourInfo({ km: 0, hm: 0, name: "", gpxFileName: "" });
   };
 
   /* Fit the whole track instead of dropping the viewer on its first point. */
@@ -53,8 +61,18 @@ function Tour_Full() {
             mode="tour"
             tourInfo={tourInfo}
             onUploadSuccess={handleGPXLoad}
+            onReset={handleReset}
           />
-          <Tour_Form />
+          <LockedRegion
+            locked={!user}
+            title="Log in to describe a tour"
+            body="A tour is saved to your account — name, dates, bike and sleep setup all write to it. Without an account there is nowhere to put them."
+            onUnlock={() =>
+              requireLogin("Log in to create a tour and upload its GPX track.")
+            }
+          >
+            <Tour_Form />
+          </LockedRegion>
         </div>
 
         <div className="lg:col-span-6 xl:col-span-7">

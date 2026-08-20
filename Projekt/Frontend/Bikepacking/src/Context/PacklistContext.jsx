@@ -84,6 +84,25 @@ const removeItem = useCallback((category, itemId) => {
 }, [recalculateTotals]);
 
 
+  /**
+   * Zurück auf eine leere Packliste.
+   *
+   * Nur die Anzeige — ein gespeichertes Setup bleibt auf dem Konto. Die
+   * aktive Setup-Id fällt mit weg, damit das nächste Speichern nach einem
+   * Namen fragt statt das alte Setup zu überschreiben.
+   */
+  const clearSetup = useCallback(() => {
+    setItemsByCategory({});
+    setActiveSetupId("");
+    setTotalWeight(0);
+    setTotalPrice(0);
+    try {
+      sessionStorage.removeItem("addedItems");
+    } catch {
+      // Ohne SessionStorage ist die Liste trotzdem leer.
+    }
+  }, []);
+
   // Setup setzen
   const setSetupItems = useCallback((groupedItems, setupId = "") => {
     setItemsByCategory(groupedItems); // itemsByCategory komplett überschreiben
@@ -108,6 +127,7 @@ const removeItem = useCallback((category, itemId) => {
         removeItem, // Einzelitem löschen
         setSetupItems,
         addItem, // Einzelitem hinzufügen
+        clearSetup, // Blatt leeren, ohne serverseitig zu löschen
       }}
     >
       {children}

@@ -1,12 +1,10 @@
 import { useContext, useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../lib/api.js";
 
 import Modal from "../ui/Modal.jsx";
 import { Button, Note, RecordPicker } from "../ui/Controls.jsx";
 import { LoadingRows } from "../ui/Sheet.jsx";
 import { TourFormContext } from "../../Context/TourFormContext.jsx";
-
-const API = "http://localhost:3030/bikepacking";
 
 const LoadTourPopup = ({ onClose, onUploadSuccess }) => {
   const [tours, setTours] = useState([]);
@@ -16,37 +14,28 @@ const LoadTourPopup = ({ onClose, onUploadSuccess }) => {
   const [busy, setBusy] = useState(false);
 
   const { setTourData } = useContext(TourFormContext);
-  const userId = sessionStorage.getItem("userId");
 
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
-      if (!userId) {
-        setLoading(false);
-        setError("Your session expired. Log in and try again.");
-        return;
-      }
-      try {
-        const userRes = await axios.get(`${API}/users/${userId}`);
-        const ids = userRes.data.tours || [];
-        const data = await Promise.all(
-          ids.map((id) => axios.get(`${API}/tours/${id}`).then((r) => r.data))
-        );
+    // Eine Anfrage: der Server kennt aus dem Cookie, wessen Touren gemeint sind.
+    api
+      .get("/tours/mine")
+      .then(({ data }) => {
         if (!cancelled) setTours(data);
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled)
           setError("Your saved tours could not be fetched. Check the server and try again.");
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    };
+      });
 
-    load();
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, []);
 
   const handleConfirm = async () => {
     const tour = tours.find((t) => t._id === selectedId);
@@ -60,7 +49,7 @@ const LoadTourPopup = ({ onClose, onUploadSuccess }) => {
 
     if (tour.GPX_file && onUploadSuccess) {
       try {
-        const { data } = await axios.get(`${API}/loadGpx/${tour.GPX_file}`);
+        const { data } = await api.get(`/loadGpx/${tour.GPX_file}`);
         onUploadSuccess({
           coordinates: data.coordinates,
           km: data.km,

@@ -1,23 +1,42 @@
 const multer = require("multer");
 const fs = require("fs");
+const path = require("path");
 const { DOMParser } = require("xmldom");
-let _fileName = "GPX_Upload.js";
+
+const verifyToken = require("./routes/session/verifyToken.js");
+const { resolveInside, storageName } = require("./uploadSafety.js");
+
+const GPX_DIR = path.join(__dirname, "files", "bikepacking");
+const MAX_BYTES = 10 * 1024 * 1024;
+const ALLOWED = [".gpx"];
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = "files/bikepacking";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
+    fs.mkdirSync(GPX_DIR, { recursive: true });
+    cb(null, GPX_DIR);
   },
   filename: (req, file, cb) => {
-    _fileName = file.originalname;
-    cb(null, file.originalname); // Originalname verwenden
+    // Nie der Name des Clients: der wäre ein Pfad (`../../app.js`) und würde
+    // fremde Uploads gleichen Namens überschreiben.
+    const name = storageName(file.originalname, ALLOWED);
+    if (!name) return cb(new Error("Only .gpx files are accepted."));
+    cb(null, name);
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_BYTES, files: 1 },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    if (!ALLOWED.includes(ext)) {
+      return cb(new Error("Only .gpx files are accepted."));
+    }
+    cb(null, true);
+  }
+});
 
-// Hilfsfunktion: GPX-Datei parsen und JSON zurückgeben
+/** Liest eine GPX-Datei und rechnet Distanz und Höhenmeter aus. */
 function parseGpx(filePath, fileName) {
   const gpxData = fs.readFileSync(filePath, "utf8");
   const xml = new DOMParser().parseFromString(gpxData, "text/xml");
@@ -29,9 +48,8 @@ function parseGpx(filePath, fileName) {
     lat: parseFloat(pt.getAttribute("lat")),
     lon: parseFloat(pt.getAttribute("lon")),
     ele: parseFloat(pt.getElementsByTagName("ele")[0]?.textContent || 0)
-  }));
+  })).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon));
 
-  // Distanz + Höhenmeter berechnen
   let km = 0;
   let hm = 0;
   const haversine = (a, b, c, d) => {
@@ -57,28 +75,44 @@ function parseGpx(filePath, fileName) {
     coordinates: trkpts.map(p => [p.lat, p.lon]),
     fileName
   };
-};
+}
 
 function bikepackingUpload(app) {
 
-  // Upload-Route (funktioniert wie bisher)
-  app.post("/bikepacking/upload", upload.single("gpx"), (req, res) => {
-    const parsed = parseGpx(req.file.path, _fileName);
-    res.json(parsed);
+  // Hochladen schreibt auf die Platte — das setzt ein Konto voraus.
+  app.post("/bikepacking/upload", verifyToken, (req, res) => {
+    upload.single("gpx")(req, res, (err) => {
+      if (err) {
+        const tooBig = err.code === "LIMIT_FILE_SIZE";
+        return res.status(tooBig ? 413 : 400).json({
+          message: tooBig ? "The GPX file is larger than 10 MB." : err.message
+        });
+      }
+      if (!req.file) return res.status(400).json({ message: "No GPX file uploaded." });
+
+      try {
+        // Der Name kommt aus multer, nicht aus der Anfrage.
+        res.json(parseGpx(req.file.path, req.file.filename));
+      } catch {
+        fs.unlink(req.file.path, () => {});
+        res.status(400).json({ message: "That file could not be read as GPX." });
+      }
+    });
   });
 
-  // Neue Route: GPX laden von Server
+  // Lesen darf jeder — Touren sind öffentlich. Der Dateiname aus der Adresse
+  // wird aber nie direkt zu einem Pfad zusammengesetzt.
   app.get("/bikepacking/loadGpx/:fileName", (req, res) => {
-    const fileName = req.params.fileName;
-    const filePath = `files/bikepacking/${fileName}`;
-
+    const filePath = resolveInside(GPX_DIR, req.params.fileName);
+    if (!filePath || !filePath.toLowerCase().endsWith(".gpx")) {
+      return res.status(400).json({ message: "Invalid file name." });
+    }
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ message: "GPX-Datei nicht gefunden" });
     }
 
     try {
-      const parsed = parseGpx(filePath, fileName);
-      res.json(parsed);
+      res.json(parseGpx(filePath, path.basename(filePath)));
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Fehler beim Parsen der GPX-Datei" });
@@ -86,4 +120,4 @@ function bikepackingUpload(app) {
   });
 }
 
-module.exports = { bikepackingUpload };
+module.exports = { bikepackingUpload, GPX_DIR };

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useRef, useState } from "react";
 import { IconAlert, IconCheck } from "./Icons.jsx";
 
 const VARIANTS = {
@@ -187,6 +187,122 @@ export function RecordPicker({ legend, name, value, onChange, records }) {
         })}
       </ul>
     </fieldset>
+  );
+}
+
+/**
+ * Eine Datei annehmen: Klicken oder Fallenlassen.
+ *
+ * Prüft Endung und Größe, bevor irgendetwas losgeschickt wird, und sagt bei
+ * einem Fehlschlag die konkrete Zahl ("Die Datei ist 7,4 MB. Erlaubt sind 5.")
+ * statt "ungültige Datei". Der Server prüft dasselbe noch einmal — diese
+ * Prüfung hier ist Freundlichkeit, kein Schutz.
+ */
+export function FileDrop({
+  label,
+  hint,
+  accept,
+  extensions,
+  maxBytes,
+  file,
+  onFile,
+  onClear,
+  error,
+  preview,
+  icon: Icon,
+  idleTitle = "Drop a file or browse",
+  className = "",
+}) {
+  const inputRef = useRef(null);
+  const [localError, setLocalError] = useState("");
+  const id = useId();
+
+  const take = (candidate) => {
+    if (!candidate) return;
+
+    const name = candidate.name.toLowerCase();
+    if (extensions && !extensions.some((ext) => name.endsWith(ext))) {
+      setLocalError(`Use a ${extensions.join(" or ")} file.`);
+      return;
+    }
+    if (maxBytes && candidate.size > maxBytes) {
+      setLocalError(
+        `That file is ${(candidate.size / 1024 / 1024).toFixed(1)} MB. The limit is ${Math.round(
+          maxBytes / 1024 / 1024
+        )} MB.`
+      );
+      return;
+    }
+
+    setLocalError("");
+    onFile(candidate);
+  };
+
+  const shown = error || localError;
+
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <span className="t-label t-label--ink">{label}</span>
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          take(e.dataTransfer.files[0]);
+        }}
+        aria-describedby={shown ? `${id}-error` : undefined}
+        className="m-grid flex min-h-[8rem] w-full flex-col items-center justify-center gap-2 border border-dashed border-ink/50 p-4 text-center transition-colors duration-150 hover:border-ink"
+      >
+        {preview ? (
+          preview
+        ) : file ? (
+          <>
+            {Icon ? <Icon size={22} /> : null}
+            <span className="t-mono break-all text-sm">{file.name}</span>
+            <span className="t-label">
+              {(file.size / 1024).toFixed(0)} KB · ready
+            </span>
+          </>
+        ) : (
+          <>
+            {Icon ? <Icon size={22} /> : null}
+            <span className="t-label t-label--ink">{idleTitle}</span>
+            {hint ? <span className="t-label">{hint}</span> : null}
+          </>
+        )}
+      </button>
+
+      {file && onClear ? (
+        <button
+          type="button"
+          onClick={() => {
+            setLocalError("");
+            onClear();
+          }}
+          className="t-label t-label--clay self-start underline"
+        >
+          Remove
+        </button>
+      ) : null}
+
+      {shown ? (
+        <p id={`${id}-error`} className="t-label flex items-center gap-1.5 text-alarm">
+          <IconAlert size={13} />
+          {shown}
+        </p>
+      ) : null}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="sr-only"
+        tabIndex={-1}
+        onChange={(e) => take(e.target.files[0])}
+      />
+    </div>
   );
 }
 

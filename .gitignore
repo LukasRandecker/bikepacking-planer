@@ -1,0 +1,10 @@
+# Werkzeug-Artefakte: Review-Screenshots aus Design-Durchgängen.
+# Gehören zur Arbeit an der App, nicht zur App.
+.impeccable/
+
+# Node
+node_modules/
+
+# Secrets — liegen zusätzlich in Projekt/Server/.gitignore
+.env
+.env.local

@@ -67,7 +67,7 @@ export default function CTA() {
               <IconArrow size={16} />
             </HashLink>
             <p className="t-label t-label--paper max-w-[28ch]">
-              Saving, loading and GPX upload need an account.
+              Planning, GPX upload and saving all need an account.
             </p>
           </div>
         </div>

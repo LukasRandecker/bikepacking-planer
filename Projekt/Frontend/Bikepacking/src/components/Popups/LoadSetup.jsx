@@ -1,12 +1,10 @@
 import { useContext, useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../lib/api.js";
 
 import Modal from "../ui/Modal.jsx";
 import { Button, Note, RecordPicker } from "../ui/Controls.jsx";
 import { LoadingRows } from "../ui/Sheet.jsx";
 import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
-
-const API = "http://localhost:3030/bikepacking";
 
 const LoadSetup = ({ onClose, onLoadSetup }) => {
   const [setups, setSetups] = useState([]);
@@ -16,37 +14,28 @@ const LoadSetup = ({ onClose, onLoadSetup }) => {
   const [busy, setBusy] = useState(false);
 
   const { setActiveSetupId } = useContext(SetupItemsContext);
-  const userId = sessionStorage.getItem("userId");
 
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
-      if (!userId) {
-        setLoading(false);
-        setError("Your session expired. Log in and try again.");
-        return;
-      }
-      try {
-        const userRes = await axios.get(`${API}/users/${userId}`);
-        const ids = userRes.data.itemlists || [];
-        const data = await Promise.all(
-          ids.map((id) => axios.get(`${API}/itemlists/${id}`).then((r) => r.data))
-        );
+    // Eine Anfrage: der Server kennt aus dem Cookie, wessen Listen gemeint sind.
+    api
+      .get("/itemlists/mine")
+      .then(({ data }) => {
         if (!cancelled) setSetups(data);
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled)
           setError("Your saved setups could not be fetched. Check the server and try again.");
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    };
+      });
 
-    load();
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, []);
 
   const handleConfirm = async () => {
     const setup = setups.find((s) => s._id === selectedId);
@@ -57,10 +46,7 @@ const LoadSetup = ({ onClose, onLoadSetup }) => {
 
     setBusy(true);
     setActiveSetupId(setup._id);
-    await onLoadSetup({
-      id: setup._id,
-      items: Array.isArray(setup.items) ? setup.items : [],
-    });
+    await onLoadSetup({ id: setup._id });
     setBusy(false);
   };
 
@@ -100,7 +86,7 @@ const LoadSetup = ({ onClose, onLoadSetup }) => {
             records={setups.map((setup) => ({
               id: setup._id,
               title: setup.Name || "Unnamed setup",
-              meta: `${(setup.items || []).length} items`,
+              meta: `${setup.itemCount ?? 0} items`,
             }))}
           />
         )}

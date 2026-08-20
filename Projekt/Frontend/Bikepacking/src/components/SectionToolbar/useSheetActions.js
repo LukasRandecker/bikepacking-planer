@@ -3,8 +3,7 @@ import { useCallback, useContext, useState } from "react";
 import { TourFormContext } from "../../Context/TourFormContext.jsx";
 import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
 import { exportPacklistPdf } from "../../lib/pdf.js";
-
-const API = "http://localhost:3030/bikepacking";
+import api, { errorMessage } from "../../lib/api.js";
 
 /**
  * Everything the tour and packlist toolbars do to the server, kept out of the
@@ -24,6 +23,7 @@ export default function useSheetActions({ tourInfo, notify }) {
     rideType,
     mode: tourMode,
     activeTourId,
+    setActiveTourId,
   } = useContext(TourFormContext);
 
   const {
@@ -57,7 +57,7 @@ export default function useSheetActions({ tourInfo, notify }) {
       return;
     }
 
-    const base = {
+    const payload = {
       Name: tourName,
       StartDate: startDate,
       EndDate: endDate,
@@ -65,51 +65,29 @@ export default function useSheetActions({ tourInfo, notify }) {
       Setupstyle: sleepSetup,
       Type: rideType,
       Mode: tourMode,
+      GPX_file: tourInfo?.gpxFileName || "",
+      // Aus der GPX-Datei gelesen. Ohne das stünde die Tour später mit
+      // 0 km / 0 m im Index, obwohl der Track dranhängt.
+      Distance: Math.round(Number(tourInfo?.km) || 0),
+      Elevation: Math.round(Number(tourInfo?.hm) || 0),
     };
-    const payload = { ...base, GPX_file: tourInfo?.gpxFileName };
 
     setBusy("save_tour");
     try {
       if (activeTourId) {
-        const res = await fetch(`${API}/tours/${activeTourId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error("The server refused the update.");
+        await api.put(`/tours/${activeTourId}`, payload);
         notify("success", `“${tourName}” updated.`);
         return;
       }
 
-      const saveRes = await fetch(`${API}/tours`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!saveRes.ok) throw new Error("The server refused the new tour.");
-
-      const findRes = await fetch(`${API}/tours/find`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(base),
-      });
-      if (!findRes.ok) throw new Error("The tour saved, but its id came back empty.");
-      const { tourId } = await findRes.json();
-
-      const userId = sessionStorage.getItem("userId");
-      if (!userId) throw new Error("Your session expired. Log in and try again.");
-
-      const linkRes = await fetch(`${API}/users/${userId}/addTours`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tourIds: [tourId] }),
-      });
-      if (!linkRes.ok)
-        throw new Error("The tour saved, but it could not be linked to your account.");
+      // POST gibt die Tour samt Id zurück und hängt sie ans eigene Konto —
+      // die alte Suche über alle Felder braucht es dafür nicht mehr.
+      const { data } = await api.post("/tours", payload);
+      setActiveTourId(data._id);
 
       notify("success", `“${tourName}” saved to your account.`);
     } catch (err) {
-      notify("error", err.message);
+      notify("error", errorMessage(err, "The tour could not be saved."));
     } finally {
       setBusy(null);
     }
@@ -122,6 +100,7 @@ export default function useSheetActions({ tourInfo, notify }) {
     rideType,
     tourMode,
     activeTourId,
+    setActiveTourId,
     tourInfo,
     notify,
   ]);
@@ -137,21 +116,16 @@ export default function useSheetActions({ tourInfo, notify }) {
 
     setBusy("save_setup");
     try {
-      const readRes = await fetch(`${API}/itemlists/${activeSetupId}`);
-      if (!readRes.ok) throw new Error("The open setup could not be read back.");
-      const existing = await readRes.json();
-
-      const res = await fetch(`${API}/itemlists/${activeSetupId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Name: existing.Name, items: ids }),
+      const { data: existing } = await api.get(`/itemlists/${activeSetupId}`);
+      await api.put(`/itemlists/${activeSetupId}`, {
+        Name: existing.Name,
+        items: ids,
       });
-      if (!res.ok) throw new Error("The server refused the update.");
 
       notify("success", `Setup updated — ${ids.length} items.`);
       return "saved";
     } catch (err) {
-      notify("error", err.message);
+      notify("error", errorMessage(err, "The setup could not be saved."));
       return "failed";
     } finally {
       setBusy(null);
@@ -166,41 +140,25 @@ export default function useSheetActions({ tourInfo, notify }) {
         return;
       }
 
-      const userId = sessionStorage.getItem("userId");
-      if (!userId) {
-        notify("error", "Your session expired. Log in and try again.");
-        return;
-      }
-
       setBusy("save_setup");
       try {
-        const res = await fetch(`${API}/itemlists`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ Name: name, items: ids }),
-        });
-        if (!res.ok) throw new Error("The server refused the new setup.");
-
-        const { _id: newSetupId } = await res.json();
-        setActiveSetupId(newSetupId);
-
-        const linkRes = await fetch(`${API}/users/${userId}/addItemlists`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itemlistIds: [newSetupId] }),
-        });
-        if (!linkRes.ok)
-          throw new Error("The setup saved, but it could not be linked to your account.");
-
+        const { data } = await api.post("/itemlists", { Name: name, items: ids });
+        setActiveSetupId(data._id);
         sessionStorage.removeItem("addedItems");
+
+        // Hängt die Liste an die offene Tour — ohne Packliste darf eine Tour
+        // nicht veröffentlicht werden.
+        if (activeTourId) {
+          await api.put(`/tours/${activeTourId}`, { Itemlist: data._id });
+        }
         notify("success", `“${name}” saved — ${ids.length} items.`);
       } catch (err) {
-        notify("error", err.message);
+        notify("error", errorMessage(err, "The setup could not be saved."));
       } finally {
         setBusy(null);
       }
     },
-    [allItemIds, setActiveSetupId, notify]
+    [allItemIds, setActiveSetupId, activeTourId, notify]
   );
 
   const exportPdf = useCallback(() => {

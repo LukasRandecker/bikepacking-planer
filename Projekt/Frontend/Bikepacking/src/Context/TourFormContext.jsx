@@ -1,7 +1,11 @@
 // TourFormContext.js
-import { createContext, useState } from "react";
+import { createContext, useCallback, useState } from "react";
 
-export const TourFormContext = createContext({
+/**
+ * Der Zustand eines unbeschriebenen Tourblatts. Steht an einer Stelle, damit
+ * "neu anfangen" und "zum ersten Mal öffnen" garantiert dasselbe ergeben.
+ */
+const EMPTY = {
   tourName: "",
   startDate: "",
   endDate: "",
@@ -10,18 +14,23 @@ export const TourFormContext = createContext({
   rideType: "BIKEPACKING",
   mode: "SOLO",
   activeTourId: "",
+};
+
+export const TourFormContext = createContext({
+  ...EMPTY,
   setTourData: () => {},
+  resetTourForm: () => {},
 });
 
 export const TourFormProvider = ({ children }) => {
-  const [tourName, setTourName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [bikeType, setBikeType] = useState("MTB");
-  const [sleepSetup, setSleepSetup] = useState("INDOOR");
-  const [rideType, setRideType] = useState("BIKEPACKING");
-  const [mode, setMode] = useState("SOLO");
-  const [activeTourId, setActiveTourId] = useState("");
+  const [tourName, setTourName] = useState(EMPTY.tourName);
+  const [startDate, setStartDate] = useState(EMPTY.startDate);
+  const [endDate, setEndDate] = useState(EMPTY.endDate);
+  const [bikeType, setBikeType] = useState(EMPTY.bikeType);
+  const [sleepSetup, setSleepSetup] = useState(EMPTY.sleepSetup);
+  const [rideType, setRideType] = useState(EMPTY.rideType);
+  const [mode, setMode] = useState(EMPTY.mode);
+  const [activeTourId, setActiveTourId] = useState(EMPTY.activeTourId);
 
   const setTourData = (data) => {
     if (data.Name !== undefined) setTourName(data.Name);
@@ -33,6 +42,24 @@ export const TourFormProvider = ({ children }) => {
     if (data.Mode !== undefined) setMode(data.Mode);
     if (data._id !== undefined) setActiveTourId(data._id);
   };
+
+  /**
+   * Zurück auf ein leeres Blatt.
+   *
+   * Räumt nur die Eingabe — eine bereits gespeicherte Tour bleibt auf dem
+   * Konto. `activeTourId` fällt mit weg, sonst würde das nächste Speichern
+   * die alte Tour überschreiben statt eine neue anzulegen.
+   */
+  const resetTourForm = useCallback(() => {
+    setTourName(EMPTY.tourName);
+    setStartDate(EMPTY.startDate);
+    setEndDate(EMPTY.endDate);
+    setBikeType(EMPTY.bikeType);
+    setSleepSetup(EMPTY.sleepSetup);
+    setRideType(EMPTY.rideType);
+    setMode(EMPTY.mode);
+    setActiveTourId(EMPTY.activeTourId);
+  }, []);
 
   return (
     <TourFormContext.Provider
@@ -46,6 +73,7 @@ export const TourFormProvider = ({ children }) => {
         mode,
         activeTourId,
         setTourData,
+        resetTourForm,
         setTourName,
         setStartDate,
         setEndDate,

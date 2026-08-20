@@ -9,9 +9,10 @@ function initDatabaseConnection() {
         process.exit(1);
     }
 
-    mongoose.connect(mongoDB)
-        .then(() => console.log("MongoDB connected"))
-        .catch(err => console.error("MongoDB connection error:", err));
+    // Gibt das Promise zurück, damit Skripte (siehe scripts/) auf die
+    // Verbindung warten und bei einem Fehler abbrechen können.
+    return mongoose.connect(mongoDB)
+        .then(() => console.log("MongoDB connected"));
 }
 
 module.exports = initDatabaseConnection;

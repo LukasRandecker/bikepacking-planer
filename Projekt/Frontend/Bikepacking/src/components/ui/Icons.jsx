@@ -148,6 +148,25 @@ export const IconCheck = (p) => (
   </Svg>
 );
 
+/* Start over: a fresh sheet with its corner turned, and the plus that means a
+   blank one. A round refresh spiral is the one shape this grammar cannot draw,
+   so the action is named by what it produces instead. */
+export const IconRedraw = (p) => (
+  <Svg {...p}>
+    <path d="M5 2h9l5 5v15H5z" />
+    <path d="M14 2v5h5" />
+    <path d="M12 12v6M9 15h6" />
+  </Svg>
+);
+
+/* Searching the catalogue. The lens is squared off like everything else here. */
+export const IconSearch = (p) => (
+  <Svg {...p}>
+    <path d="M4 4h11v11H4z" />
+    <path d="M15 15l5 5" />
+  </Svg>
+);
+
 export const IconPlus = (p) => (
   <Svg {...p}>
     <path d="M12 4v16M4 12h16" />

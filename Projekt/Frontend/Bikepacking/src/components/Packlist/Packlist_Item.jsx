@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
-import packlist_img from "../../assets/NoImage.jpg";
 import { IconLink, IconTrash } from "../ui/Icons.jsx";
+import { ItemThumb } from "../ui/Sheet.jsx";
+import { assetUrl } from "../../lib/api.js";
 
 /**
  * One line of the schedule. On wide screens the row aligns to the column
@@ -10,6 +11,7 @@ import { IconLink, IconTrash } from "../ui/Icons.jsx";
  */
 export default function Packlist_Item({
   Itemname: initialName,
+  Brand,
   IMG,
   Weight: initialWeight,
   Price: initialPrice,
@@ -44,26 +46,22 @@ export default function Packlist_Item({
 
   return (
     <li className="grid grid-cols-1 items-end gap-3 border-b border-rule bg-sheet p-3 last:border-b-0 lg:grid-cols-[4rem_minmax(0,1fr)_7rem_7rem_auto] lg:gap-4">
-      <div className="m-plate h-16 w-16 flex-none justify-self-start border-rule">
-        <img
-          src={IMG ? `http://localhost:3030${IMG}` : packlist_img}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="object-contain"
-          onError={(e) => {
-            if (e.currentTarget.src !== packlist_img)
-              e.currentTarget.src = packlist_img;
-          }}
-        />
-      </div>
+      <ItemThumb
+        src={assetUrl(IMG)}
+        className="h-16 w-16 justify-self-start"
+      />
 
-      {field("name", "Item", {
-        type: "text",
-        value: Itemname,
-        placeholder: "Item name",
-        onChange: (e) => setItemname(e.target.value),
-      })}
+      <div className="flex min-w-0 flex-col gap-1">
+        {field("name", "Item", {
+          type: "text",
+          value: Itemname,
+          placeholder: "Item name",
+          onChange: (e) => setItemname(e.target.value),
+        })}
+        {Brand ? (
+          <span className="t-label truncate">{Brand}</span>
+        ) : null}
+      </div>
 
       {field("weight", "Weight (g)", {
         type: "number",
