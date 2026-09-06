@@ -6,7 +6,7 @@ import Packlist_ItemPicker from "./Packlist_ItemPicker.jsx";
 import { MeasureBar } from "../ui/Sheet.jsx";
 import { Note } from "../ui/Controls.jsx";
 import { IconChevron, IconPlus } from "../ui/Icons.jsx";
-import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
+import { SetupItemsContext } from "../../Context/SetupItemsContext.jsx";
 import { UserContext } from "../../Context/UserContext.jsx";
 import api, { errorMessage } from "../../lib/api.js";
 
@@ -149,7 +149,9 @@ export default function Packlist_Group({ title, items = [], listId, totalWeight 
           <span className="flex items-center gap-3 min-w-0">
             <span className="t-h3 truncate">{title}</span>
             <span className="t-label flex-none">
-              {items.length === 0 ? "Empty" : `${items.length} items`}
+              {items.length === 0
+                ? "Empty"
+                : `${items.length} ${items.length === 1 ? "item" : "items"}`}
             </span>
           </span>
 

@@ -44,22 +44,6 @@ export const Mark = (p) => (
   </Svg>
 );
 
-/* Distance ridden. */
-export const IconRoute = (p) => (
-  <Svg {...p}>
-    <path d="M2 18h6v-7h6V6h7" />
-    <path d="M2 15v6" opacity="0.35" />
-    <path d="M21 3v6" opacity="0.35" />
-  </Svg>
-);
-
-/* Elevation gained, drawn as the profile it is. */
-export const IconElevation = (p) => (
-  <Svg {...p}>
-    <path d="M2 20h20" />
-    <path d="M2 20 8.5 7l3.5 6L17 4l5 16" />
-  </Svg>
-);
 
 export const IconUpload = (p) => (
   <Svg {...p}>
@@ -182,19 +166,3 @@ export const IconAlert = (p) => (
   </Svg>
 );
 
-export const IconSheet = (p) => (
-  <Svg {...p}>
-    <path d="M5 2h9l5 5v15H5z" />
-    <path d="M14 2v5h5" />
-    <path d="M8 12h8M8 16h8" />
-  </Svg>
-);
-
-/* Survey mark — used where the sheet locates something. */
-export const IconTarget = (p) => (
-  <Svg {...p}>
-    <path d="M12 1v5M12 18v5M1 12h5M18 12h5" />
-    <path d="M7 7h10v10H7z" />
-    <path d="M11 11h2v2h-2z" fill="currentColor" stroke="none" />
-  </Svg>
-);

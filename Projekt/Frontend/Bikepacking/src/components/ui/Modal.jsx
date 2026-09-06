@@ -82,9 +82,9 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`a-drop w-full ${maxWidth} border border-ink bg-sheet outline-none`}
+        className={`a-drop flex max-h-[100dvh] w-full ${maxWidth} flex-col border border-ink bg-sheet outline-none sm:max-h-[calc(100dvh-3rem)]`}
       >
-        <div className="flex items-stretch justify-between border-b border-ink">
+        <div className="flex flex-none items-stretch justify-between border-b border-ink">
           <div className="flex min-w-0 flex-col justify-center px-4 py-3">
             {code ? <span className="t-label">{code}</span> : null}
             <h2 id={titleId} className="t-h3 truncate">
@@ -101,10 +101,10 @@ export default function Modal({
           </button>
         </div>
 
-        <div className="p-4 sm:p-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
 
         {footer ? (
-          <div className="border-t border-ink p-4 sm:px-5">{footer}</div>
+          <div className="flex-none border-t border-ink p-4 sm:px-5">{footer}</div>
         ) : null}
       </div>
     </div>

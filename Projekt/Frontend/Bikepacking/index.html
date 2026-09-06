@@ -10,13 +10,28 @@
       name="description"
       content="Load a GPX track, describe the tour, and build the packing list beside it. Every item carries its weight and price, and the finished setup exports as a printable checklist."
     />
+
+    <!--
+      %SITE_URL% wird beim Build eingesetzt (siehe vite.config.js). Open Graph
+      verlangt absolute URLs: mit dem relativen Pfad, der hier stand, zeigte
+      keine Plattform das Vorschaubild an.
+    -->
+    <link rel="canonical" href="%SITE_URL%/" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:site_name" content="Bikepacking" />
     <meta property="og:title" content="Bikepacking — Plan the tour, weigh the load" />
     <meta
       property="og:description"
       content="A planning sheet for bikepacking setups: route, tour details, and packing list on one page."
     />
-    <meta property="og:image" content="/IMG/HeroIMG2.jpg" />
+    <meta property="og:image" content="%SITE_URL%/IMG/og-cover.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="A loaded bikepacking rig on a gravel road"
+    />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>

@@ -1,9 +1,11 @@
-import { createContext, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 
-// Context erstellen
-export const SetupItemsContext = createContext(null);
+import { SetupItemsContext } from "./SetupItemsContext.jsx";
 
-//provider
+/**
+ * Haelt die Packliste des Tourblatts. Das Context-Objekt selbst liegt in
+ * `SetupItemsContext.jsx` — diese Datei exportiert nur den Provider.
+ */
 export const SetupItemsProvider = ({ children }) => {
   const [itemsByCategory, setItemsByCategory] = useState({});
   const [activeSetupId, setActiveSetupId] = useState("");

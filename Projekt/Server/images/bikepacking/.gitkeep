@@ -1,0 +1,3 @@
+Zielordner fuer hochgeladene Cover-Bilder. Der Inhalt gehoert nicht ins Repo,
+der Ordner schon: multer legt ihn zwar bei Bedarf an, aber die Leseroute und
+`dropIfUnused()` in routes/bikepacking/tours.js erwarten ihn als festen Ort.

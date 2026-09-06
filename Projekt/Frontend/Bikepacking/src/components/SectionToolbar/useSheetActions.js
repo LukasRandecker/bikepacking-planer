@@ -1,7 +1,7 @@
 import { useCallback, useContext, useState } from "react";
 
 import { TourFormContext } from "../../Context/TourFormContext.jsx";
-import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
+import { SetupItemsContext } from "../../Context/SetupItemsContext.jsx";
 import { exportPacklistPdf } from "../../lib/pdf.js";
 import api, { errorMessage } from "../../lib/api.js";
 
@@ -161,13 +161,16 @@ export default function useSheetActions({ tourInfo, notify }) {
     [allItemIds, setActiveSetupId, activeTourId, notify]
   );
 
-  const exportPdf = useCallback(() => {
+  const exportPdf = useCallback(async () => {
     if (allItemIds().length === 0) {
       notify("error", "The list is empty — there is nothing to print yet.");
       return;
     }
+    // Der PDF-Code wird erst hier nachgeladen, das dauert einen Moment —
+    // solange zeigt der Knopf seinen laufenden Zustand.
+    setBusy("pdf");
     try {
-      const file = exportPacklistPdf({
+      const file = await exportPacklistPdf({
         itemsByCategory,
         tour: { tourName, startDate, endDate, bikeType, rideType, mode: tourMode },
         totalWeight,
@@ -177,6 +180,8 @@ export default function useSheetActions({ tourInfo, notify }) {
     } catch (err) {
       console.error(err);
       notify("error", "The PDF could not be created. Try again, or reload the page.");
+    } finally {
+      setBusy(null);
     }
   }, [
     allItemIds,

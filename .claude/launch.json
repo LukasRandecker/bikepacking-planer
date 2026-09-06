@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "Projekt/Frontend/Bikepacking", "run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "bikepacking-server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "Projekt/Server", "run", "dev"],
+      "port": 3030
+    },
+    {
+      "name": "bikepacking-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "Projekt/Frontend/Bikepacking", "run", "preview"],
+      "port": 4173
     }
   ]
 }

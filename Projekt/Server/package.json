@@ -6,9 +6,8 @@
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
-    "seed": "npm run seed:catalog && npm run seed:tours",
+    "seed": "npm run seed:catalog",
     "seed:catalog": "node scripts/seedCatalog.js",
-    "seed:tours": "node scripts/seedTours.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate:passwords": "node scripts/hashPasswords.js",
     "migrate:owners": "node scripts/backfillOwnership.js",
@@ -19,17 +18,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "@xmldom/xmldom": "^0.9.12",
+    "bcrypt": "^6.0.0",
     "body-parser": "^1.20.4",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.20.2"
-  },
-  "devDependencies": {
-    "swagger-jsdoc": "^6.2.8",
+    "mongoose": "^8.20.2",
+    "multer": "^1.4.5-lts.1",
+    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   }
 }

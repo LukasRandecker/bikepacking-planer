@@ -7,9 +7,7 @@
  * Lauf wären Alt-Touren für ihr eigenes Konto unsichtbar.
  *
  * Angefasst wird nur, was eindeutig ist: Touren, die an genau einem Konto
- * hängen und noch keinen Owner haben. Die Demo-Touren aus seedTours.js hängen
- * an keinem Konto und bleiben absichtlich besitzerlos — sie stammen von
- * erfundenen Autoren und soll niemand bearbeiten können.
+ * hängen und noch keinen Owner haben. Besitzerlose Touren bleiben besitzerlos.
  *
  *   npm run migrate:owners
  */

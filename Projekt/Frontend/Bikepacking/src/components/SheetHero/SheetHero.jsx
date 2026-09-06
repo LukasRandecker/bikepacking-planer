@@ -16,7 +16,7 @@ const LINES = [
  * sits beside them as a framed plate. The title block along the bottom answers
  * what / in / out and holds the one primary action.
  */
-export default function SheetHero({ imagePath, plateCaption }) {
+export default function SheetHero({ imagePath, imageSrcSet, plateCaption }) {
   return (
     <section className="sheet-pad">
       <div className="grid lg:grid-cols-12">
@@ -45,6 +45,15 @@ export default function SheetHero({ imagePath, plateCaption }) {
         <div className="pb-8 lg:col-span-4 lg:py-12 lg:pl-10">
           <Plate
             src={imagePath}
+            srcSet={imageSrcSet}
+            /* Nachgemessen, nicht geschaetzt: unter 1024px fuellt die Platte
+               rund 92vw, darueber rund 28vw, und ab 1920px steht das Blatt
+               still bei etwa 500px. Muss mit HERO_SIZES in vite.config.js
+               uebereinstimmen — sonst laedt der Preload eine andere Groesse
+               als das Bild, und der Browser holt beide. */
+            sizes="(min-width: 1920px) 500px, (min-width: 1024px) 28vw, 92vw"
+            width={2222}
+            height={1250}
             alt="A loaded bikepacking rig on a gravel road"
             caption={plateCaption}
             frameClassName="aspect-[16/9] sm:aspect-[2/1] lg:aspect-[4/5]"

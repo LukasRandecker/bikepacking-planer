@@ -419,6 +419,13 @@ router.put('/:id', verifyToken, async (req, res) => {
     delete value.Owner;
     delete value.Author;
 
+    // Sichtbarkeit ist kein gewoehnliches Feld: sie geht ausschliesslich ueber
+    // PUT /tours/:id/publish, weil nur dort geprueft wird, ob die Tour Track,
+    // Cover und eine gefuellte Packliste hat. Ohne diese Zeile liess sich der
+    // Gate mit `{"Public": true}` schlicht umgehen — die Tour stand danach mit
+    // leerer Kachel im oeffentlichen Index.
+    delete value.Public;
+
     Object.assign(tour, value);
     const saved = await tour.save();
     res.json(saved);
@@ -530,3 +537,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
  */
 
 module.exports = router;
+
+// Das Konto-Loeschen in users.js raeumt dieselben Dateien weg und soll dafuer
+// nicht seine eigene Kopie dieser Logik mitbringen.
+module.exports.dropIfUnused = dropIfUnused;

@@ -7,32 +7,6 @@ import NoImage from "../../assets/NoImage.jpg";
  * nothing floats, nothing is shadowed, nothing has a corner radius.
  */
 
-/** A ruled band across the sheet. The top rule is the section's own edge. */
-export function SheetSection({
-  id,
-  tone = "sheet",
-  className = "",
-  children,
-  ...rest
-}) {
-  const ground =
-    tone === "ink"
-      ? "bg-ink text-paper on-ink"
-      : tone === "field"
-        ? "bg-field text-ink"
-        : "bg-sheet text-ink";
-
-  return (
-    <section
-      id={id}
-      className={`sheet-pad border-t border-ink ${ground} ${className}`}
-      {...rest}
-    >
-      {children}
-    </section>
-  );
-}
-
 /**
  * A section's heading with its metadata pinned to the far edge, the way a
  * drawing labels a view. The heading carries itself; the mono text beside it is
@@ -114,6 +88,10 @@ export function MeasureBar({ value, max, tone = "clay", label }) {
  */
 export function Plate({
   src,
+  srcSet,
+  sizes,
+  width,
+  height,
   alt,
   caption,
   ratio = "4 / 3",
@@ -130,6 +108,12 @@ export function Plate({
       >
         <img
           src={src || NoImage}
+          // Ohne `srcSet` bekam jedes Handy die 2222px-Fassung: 263 kB fuer
+          // eine 370px breite Flaeche, und damit den langsamsten LCP der Seite.
+          srcSet={src && srcSet ? srcSet : undefined}
+          sizes={src && srcSet ? sizes : undefined}
+          width={width}
+          height={height}
           alt={alt}
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : undefined}

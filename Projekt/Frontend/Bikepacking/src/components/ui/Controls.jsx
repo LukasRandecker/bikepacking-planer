@@ -262,7 +262,13 @@ export function FileDrop({
             {Icon ? <Icon size={22} /> : null}
             <span className="t-mono break-all text-sm">{file.name}</span>
             <span className="t-label">
-              {(file.size / 1024).toFixed(0)} KB · ready
+              {/* Unter einem Kilobyte stand hier vorher „0 KB". */}
+              {file.size < 1024
+                ? `${file.size} B`
+                : file.size < 1024 * 100
+                  ? `${(file.size / 1024).toFixed(1)} KB`
+                  : `${(file.size / 1024).toFixed(0)} KB`}{" "}
+              · ready
             </span>
           </>
         ) : (
@@ -294,12 +300,17 @@ export function FileDrop({
         </p>
       ) : null}
 
+      {/* Bedient wird der Knopf darüber, nicht dieses Feld: es ist `sr-only`
+          und aus der Tab-Reihenfolge genommen. Ohne `aria-hidden` blieb es
+          trotzdem im Accessibility-Baum stehen — als Dateifeld ohne jede
+          Beschriftung, was axe zu Recht als Verstoß meldet. */}
       <input
         ref={inputRef}
         type="file"
         accept={accept}
         className="sr-only"
         tabIndex={-1}
+        aria-hidden="true"
         onChange={(e) => take(e.target.files[0])}
       />
     </div>

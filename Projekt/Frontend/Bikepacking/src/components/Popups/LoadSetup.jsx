@@ -4,7 +4,7 @@ import api from "../../lib/api.js";
 import Modal from "../ui/Modal.jsx";
 import { Button, Note, RecordPicker } from "../ui/Controls.jsx";
 import { LoadingRows } from "../ui/Sheet.jsx";
-import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
+import { SetupItemsContext } from "../../Context/SetupItemsContext.jsx";
 
 const LoadSetup = ({ onClose, onLoadSetup }) => {
   const [setups, setSetups] = useState([]);

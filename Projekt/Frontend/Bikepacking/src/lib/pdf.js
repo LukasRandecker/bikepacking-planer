@@ -1,5 +1,19 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+/**
+ * jsPDF und jspdf-autotable werden erst geladen, wenn wirklich exportiert
+ * wird. Statisch importiert hingen sie mitsamt html2canvas im ersten
+ * JS-Bundle — 226 kB, die niemand braucht, der nur die Startseite ansieht.
+ */
+let pdfLibs = null;
+async function loadPdfLibs() {
+  if (!pdfLibs) {
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    pdfLibs = { jsPDF, autoTable };
+  }
+  return pdfLibs;
+}
 
 /**
  * The packing list as the sheet it always was.
@@ -12,7 +26,7 @@ import autoTable from "jspdf-autotable";
 
 const INK = [16, 16, 16];
 const RULE = [214, 213, 208];
-const CLAY = [162, 78, 43];
+const CLAY = [96, 108, 56]; // --color-clay, seit der Umfaerbung Dark Moss Green
 const FAINT = [110, 110, 104];
 
 const MARGIN = 14;
@@ -39,12 +53,14 @@ const value = (doc, text, x, y, size = 10) => {
  * @param {number} data.totalPrice   euros
  * @returns {string} the filename written
  */
-export function exportPacklistPdf({
+export async function exportPacklistPdf({
   itemsByCategory = {},
   tour = {},
   totalWeight = 0,
   totalPrice = 0,
 }) {
+  const { jsPDF, autoTable } = await loadPdfLibs();
+
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const inner = pageW - MARGIN * 2;

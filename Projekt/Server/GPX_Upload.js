@@ -1,7 +1,8 @@
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-const { DOMParser } = require("xmldom");
+// @xmldom/xmldom ist der gepflegte Nachfolger des aufgegebenen `xmldom`.
+const { DOMParser } = require("@xmldom/xmldom");
 
 const verifyToken = require("./routes/session/verifyToken.js");
 const { resolveInside, storageName } = require("./uploadSafety.js");
