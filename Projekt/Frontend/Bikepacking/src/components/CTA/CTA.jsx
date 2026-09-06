@@ -1,5 +1,6 @@
 import { HashLink } from "react-router-hash-link";
 import { IconArrow } from "../ui/Icons.jsx";
+import { DEMO } from "../../lib/demo.js";
 
 /**
  * Sample rows, clearly labelled as such on the sheet. Real gear names with
@@ -67,7 +68,9 @@ export default function CTA() {
               <IconArrow size={16} />
             </HashLink>
             <p className="t-label t-label--paper max-w-[28ch]">
-              Planning, GPX upload and saving all need an account.
+              {DEMO
+                ? "No account needed. Nothing is saved."
+                : "Planning, GPX upload and saving all need an account."}
             </p>
           </div>
         </div>

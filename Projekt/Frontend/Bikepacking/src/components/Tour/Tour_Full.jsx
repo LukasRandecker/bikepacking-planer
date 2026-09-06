@@ -6,6 +6,7 @@ import SectionToolbar from "../SectionToolbar/SectionToolbar.jsx";
 import Tour_Form from "./Tour_Form.jsx";
 import { EmptyPlate, LockedRegion } from "../ui/Sheet.jsx";
 import { UserContext } from "../../Context/UserContext.jsx";
+import { DEMO } from "../../lib/demo.js";
 
 /**
  * The drawing area and its title block. The route is plotted twice — a heavy
@@ -63,8 +64,10 @@ function Tour_Full() {
             onUploadSuccess={handleGPXLoad}
             onReset={handleReset}
           />
+          {/* Im Demo-Modus gibt es nichts zu sperren: das Blatt fuehrt zu
+              keinem Konto, also steht es offen. */}
           <LockedRegion
-            locked={!user}
+            locked={!DEMO && !user}
             title="Log in to describe a tour"
             body="A tour is saved to your account — name, dates, bike and sleep setup all write to it. Without an account there is nowhere to put them."
             onUnlock={() =>
@@ -96,8 +99,13 @@ function Tour_Full() {
                   className="h-full w-full"
                 >
                   <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    // CARTO verlangt fuer seine Basemaps inzwischen einen
+                    // API-Key: die Kacheln kamen zwar mit 200 zurueck, trugen
+                    // aber quer ueber die Karte "API KEY REQUIRED". Die
+                    // Standardkacheln von OpenStreetMap brauchen keinen
+                    // Schluessel; entfaerbt werden sie in index.css.
+                    url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   />
                   <Polyline
                     positions={routeCoordinates}
@@ -111,7 +119,7 @@ function Tour_Full() {
                   <Polyline
                     positions={routeCoordinates}
                     pathOptions={{
-                      color: "#a24e2b",
+                      color: "#606c38",
                       weight: 2.5,
                       opacity: 1,
                       lineCap: "butt",

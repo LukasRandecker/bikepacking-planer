@@ -6,6 +6,7 @@ import { ItemName, ItemThumb, LoadingRows } from "../ui/Sheet.jsx";
 import { IconPlus, IconSearch } from "../ui/Icons.jsx";
 import api, { assetUrl, errorMessage } from "../../lib/api.js";
 import { UserContext } from "../../Context/UserContext.jsx";
+import { DEMO } from "../../lib/demo.js";
 
 const PAGE_SIZE = 24;
 
@@ -107,7 +108,9 @@ export default function Packlist_ItemPicker({
       footer={
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="t-label">
-            Not in the catalogue? Add it yourself — it stays on your account.
+            {DEMO
+              ? "Not in the catalogue? Add it yourself — it joins the catalogue for this visit."
+              : "Not in the catalogue? Add it yourself — it joins the shared catalogue, and only you can edit it."}
           </p>
           <Button variant="ghost" icon={IconPlus} onClick={onCreateOwn}>
             New item
@@ -118,11 +121,16 @@ export default function Packlist_ItemPicker({
       <div className="flex flex-col gap-4">
         {error ? <Note tone="error">{error}</Note> : null}
 
+        <div className="sticky -top-4 z-10 -mx-4 -mt-4 flex flex-col gap-4 bg-sheet px-4 pt-4 pb-3 sm:-top-5 sm:-mx-5 sm:-mt-5 sm:px-5 sm:pt-5">
         <div className="flex flex-col gap-1.5">
           <label htmlFor={searchId} className="t-label t-label--ink">
             Search the catalogue
           </label>
-          <div className="flex items-center gap-2 border border-ink bg-sheet px-3">
+          {/* Der Ring sitzt am Rahmen, nicht am nackten Eingabefeld — das
+              Feld selbst hat keinen eigenen Rand. `outline-none` am Input
+              bleibt deshalb nötig, darf aber nicht der einzige Zustand sein:
+              vorher war das Feld beim Tabben nicht zu erkennen. */}
+          <div className="flex items-center gap-2 border border-ink bg-sheet px-3 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-clay">
             <span aria-hidden="true" className="flex-none text-ink-soft">
               <IconSearch size={16} />
             </span>
@@ -133,7 +141,7 @@ export default function Packlist_ItemPicker({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Tent, sleeping bag, frame bag…"
-              className="min-h-11 w-full border-0 bg-transparent py-2 text-sm outline-none"
+              className="min-h-11 w-full border-0 bg-transparent py-2 text-sm outline-hidden"
             />
           </div>
           <p className="t-label">
@@ -170,13 +178,14 @@ export default function Packlist_ItemPicker({
               : `${nf(total)} ${total === 1 ? "record" : "records"}`}
           </span>
         </div>
+        </div>
 
         {loading && results.length === 0 ? (
           <LoadingRows rows={4} />
         ) : results.length === 0 ? (
           <div className="m-grid border border-dashed border-ink/40 px-4 py-8 text-center">
             <p className="text-sm text-ink-soft">
-              {scope === "USER" && !user
+              {scope === "USER" && !user && !DEMO
                 ? "Log in to see the items you added yourself."
                 : query.trim()
                   ? `Nothing in the ${scope === "CATALOG" ? "catalogue" : "list"} matches “${query.trim()}”.`
@@ -193,7 +202,7 @@ export default function Packlist_ItemPicker({
             ) : null}
           </div>
         ) : (
-          <ul className="max-h-[24rem] overflow-y-auto border border-ink">
+          <ul className="border border-ink">
             {results.map((item) => {
               const isAdded = added.has(item._id);
               return (

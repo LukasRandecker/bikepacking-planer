@@ -6,8 +6,14 @@ import { Mark, IconAccount, IconClose, IconMenu } from "../ui/Icons.jsx";
 import { Button } from "../ui/Controls.jsx";
 import Login_Popup from "../Popups/Login.jsx";
 import { UserContext } from "../../Context/UserContext.jsx";
+import { DEMO } from "../../lib/demo.js";
 
 const SHEETS = { "/": "01 · Index", "/overview": "02 · Planner", "/user": "03 · Account" };
+
+// Ohne Server gibt es kein Konto — der Knopf und die Kontoseite verschwinden,
+// statt grau und unbenutzbar dazustehen. Ein toter Knopf laedt zum Klicken ein
+// und erklaert nichts.
+const ACCOUNTS = !DEMO;
 
 const LINKS = [
   { to: "/", label: "Home", match: (p, h) => p === "/" && !h },
@@ -104,31 +110,35 @@ const NavBar = () => {
             </span>
           </span>
 
-          {user ? (
-            <Button
-              variant="quiet"
-              onClick={handleLogout}
-              className="flex-none self-stretch border-0 border-l border-rule"
-            >
-              Log out
-            </Button>
-          ) : (
-            <Button
-              variant="clay"
-              onClick={() => setLoginOpen(true)}
-              className="flex-none self-stretch border-0 border-l border-clay"
-            >
-              Log in
-            </Button>
-          )}
+          {ACCOUNTS ? (
+            <>
+              {user ? (
+                <Button
+                  variant="quiet"
+                  onClick={handleLogout}
+                  className="flex-none self-stretch border-0 border-l border-rule"
+                >
+                  Log out
+                </Button>
+              ) : (
+                <Button
+                  variant="clay"
+                  onClick={() => setLoginOpen(true)}
+                  className="flex-none self-stretch border-0 border-l border-clay"
+                >
+                  Log in
+                </Button>
+              )}
 
-          <Link
-            to="/user"
-            aria-label="Account"
-            className="hidden w-11 flex-none items-center justify-center border-l border-rule transition-colors duration-150 hover:bg-field md:flex"
-          >
-            <IconAccount size={19} />
-          </Link>
+              <Link
+                to="/user"
+                aria-label="Account"
+                className="hidden w-11 flex-none items-center justify-center border-l border-rule transition-colors duration-150 hover:bg-field md:flex"
+              >
+                <IconAccount size={19} />
+              </Link>
+            </>
+          ) : null}
 
           <button
             type="button"
@@ -167,20 +177,22 @@ const NavBar = () => {
                 </li>
               );
             })}
-            <li>
-              <Link
-                to="/user"
-                className="flex min-h-[3.25rem] items-center gap-3 px-4 no-underline"
-              >
-                <IconAccount size={18} />
-                <span className="t-label t-label--ink">Account</span>
-              </Link>
-            </li>
+            {ACCOUNTS ? (
+              <li>
+                <Link
+                  to="/user"
+                  className="flex min-h-[3.25rem] items-center gap-3 px-4 no-underline"
+                >
+                  <IconAccount size={18} />
+                  <span className="t-label t-label--ink">Account</span>
+                </Link>
+              </li>
+            ) : null}
           </ul>
         </div>
       ) : null}
 
-      {loginOpen ? (
+      {loginOpen && ACCOUNTS ? (
         <Login_Popup
           onClose={() => setLoginOpen(false)}
           onLoginSuccess={(userData) => {

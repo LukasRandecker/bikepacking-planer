@@ -3,8 +3,9 @@ import { useContext } from "react";
 import SectionToolbar from "../SectionToolbar/SectionToolbar.jsx";
 import Packlist_Group from "./Packlist_Group.jsx";
 import { LockedRegion } from "../ui/Sheet.jsx";
-import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
+import { SetupItemsContext } from "../../Context/SetupItemsContext.jsx";
 import { UserContext } from "../../Context/UserContext.jsx";
+import { DEMO } from "../../lib/demo.js";
 
 const CATEGORIES = [
   "Bike and Bags",
@@ -29,7 +30,7 @@ function Packlist_Full() {
       <SectionToolbar mode="setup" />
 
       <LockedRegion
-        locked={!user}
+        locked={!DEMO && !user}
         title="Log in to build a packlist"
         body="Gear is picked from the shared catalogue and saved as a setup on your account. The catalogue is right here — the login is what gives it somewhere to save to."
         onUnlock={() => requireLogin("Log in to build and save a packlist.")}

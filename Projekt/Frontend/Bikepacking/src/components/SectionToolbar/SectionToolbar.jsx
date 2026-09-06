@@ -12,8 +12,9 @@ import LoadSetupPopup from "../Popups/LoadSetup.jsx";
 import NewSetup_Popup from "../Popups/SaveNewSetup.jsx";
 
 import { UserContext } from "../../Context/UserContext.jsx";
-import { SetupItemsContext } from "../../Context/PacklistContext.jsx";
+import { SetupItemsContext } from "../../Context/SetupItemsContext.jsx";
 import { TourFormContext } from "../../Context/TourFormContext.jsx";
+import { DEMO } from "../../lib/demo.js";
 import api from "../../lib/api.js";
 
 const nf = (n, digits = 0) =>
@@ -104,19 +105,29 @@ export default function SectionToolbar({
     </Button>
   );
 
+  /**
+   * Laden und Speichern setzen ein Konto voraus, das es im Demo-Modus nicht
+   * gibt. Sie verschwinden, statt grau dazustehen: ein toter Knopf laedt zum
+   * Draufklicken ein und erklaert nichts. Was bleibt, arbeitet echt — der
+   * Track wird wirklich gelesen, das PDF wirklich erzeugt.
+   */
   const actions = isTour ? (
     <>
       {newButton}
-      <Button variant="quiet" onClick={guard(() => setDialog("load-tour"))}>
-        Load
-      </Button>
-      <Button
-        variant="ghost"
-        onClick={guard(saveTour)}
-        busy={busy === "save_tour"}
-      >
-        Save
-      </Button>
+      {DEMO ? null : (
+        <>
+          <Button variant="quiet" onClick={guard(() => setDialog("load-tour"))}>
+            Load
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={guard(saveTour)}
+            busy={busy === "save_tour"}
+          >
+            Save
+          </Button>
+        </>
+      )}
       <Button
         variant="clay"
         icon={IconUpload}
@@ -128,17 +139,26 @@ export default function SectionToolbar({
   ) : (
     <>
       {newButton}
-      <Button variant="quiet" onClick={guard(() => setDialog("load-setup"))}>
-        Load
-      </Button>
+      {DEMO ? null : (
+        <>
+          <Button variant="quiet" onClick={guard(() => setDialog("load-setup"))}>
+            Load
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={guard(handleSaveSetup)}
+            busy={busy === "save_setup"}
+          >
+            Save
+          </Button>
+        </>
+      )}
       <Button
-        variant="ghost"
-        onClick={guard(handleSaveSetup)}
-        busy={busy === "save_setup"}
+        variant="clay"
+        icon={IconDownload}
+        onClick={guard(exportPdf)}
+        busy={busy === "pdf"}
       >
-        Save
-      </Button>
-      <Button variant="clay" icon={IconDownload} onClick={guard(exportPdf)}>
         Export PDF
       </Button>
     </>

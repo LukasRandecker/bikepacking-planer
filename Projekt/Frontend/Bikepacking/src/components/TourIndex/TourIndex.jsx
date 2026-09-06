@@ -12,6 +12,7 @@ import { SegmentedChoice, Note } from "../ui/Controls.jsx";
 import { IconArrow } from "../ui/Icons.jsx";
 import api, { assetUrl, errorMessage } from "../../lib/api.js";
 import useGridColumns, { fullRows } from "../../lib/useGridColumns.js";
+import { DEMO } from "../../lib/demo.js";
 
 const FILTERS = ["ALL", "MTB", "GRAVEL", "ROAD", "BIKEPACKING", "RACE"];
 
@@ -121,8 +122,10 @@ export default function TourIndex() {
     if (error) {
       return (
         <Note tone="error">
-          {error} The index reads from the server — start it on port 3030 and
-          reload.
+          {error}
+          {DEMO
+            ? " The index is built in the browser from the tracks shipped with this demo."
+            : " The index reads from the server — start it on port 3030 and reload."}
         </Note>
       );
     }
@@ -166,15 +169,26 @@ export default function TourIndex() {
           const days = nights(tour.StartDate, tour.EndDate);
           return (
             <li key={tour._id} className="flex flex-col">
+              {/* Kein `outline-none` an dieser Kachel: das Utility setzt in
+                  Tailwind 4 auch `--tw-outline-style: none`, und genau die
+                  Variable liest `focus-visible:outline-2` danach aus — die
+                  Kachel bekam Ringfarbe und -breite, aber keinen Stil, also
+                  gar keinen sichtbaren Fokus. Den Ring zeichnet die globale
+                  Regel `:focus-visible` in index.css; hier wird er nur enger
+                  an die Kante gelegt. */}
               <Link
                 to={`/tour/${tour._id}`}
-                className="group flex flex-1 flex-col no-underline outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-clay"
+                className="group flex flex-1 flex-col no-underline focus-visible:-outline-offset-2"
               >
                 <div className="m-plate m-plate--live aspect-square w-full border-0 border-b border-ink">
                   {tour.Cover ? (
                     <img
                       src={assetUrl(tour.Cover)}
                       alt=""
+                      // Der Rahmen ist quadratisch; die Masse geben dem
+                      // Browser das Seitenverhaeltnis vor dem Laden mit.
+                      width={800}
+                      height={800}
                       loading="lazy"
                       decoding="async"
                     />
@@ -195,7 +209,8 @@ export default function TourIndex() {
                     </div>
                     <p className="t-label mt-1">
                       {dateLabel(tour.StartDate)}
-                      {days !== null ? ` · ${days} days` : ""}
+                      {/* Eine Eintagestour hat null Naechte — "0 days" waere keine Angabe. */}
+                      {days ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
                       {tour.Author ? ` · ${tour.Author}` : ""}
                     </p>
                   </div>
@@ -286,9 +301,11 @@ export default function TourIndex() {
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-ink pt-4">
         <p className="t-label max-w-md">
-          {hidden > 0
-            ? `${hidden} more published ${hidden === 1 ? "tour" : "tours"} not shown. Distances and climb are drawn to one shared scale.`
-            : "Distances and climb are drawn to one shared scale across the index."}
+          {DEMO
+            ? "Both tours ship with this demo and belong to no account. Distance and climb are read from their GPX files; the packlists are picked from the catalogue."
+            : hidden > 0
+              ? `${hidden} more published ${hidden === 1 ? "tour" : "tours"} not shown. Distances and climb are drawn to one shared scale.`
+              : "Distances and climb are drawn to one shared scale across the index."}
         </p>
         <HashLink smooth to="/overview#tour" className="c-btn c-btn--ghost">
           <span>Plan your own</span>

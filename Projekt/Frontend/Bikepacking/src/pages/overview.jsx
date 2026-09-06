@@ -5,6 +5,7 @@ import Tour_Full from "../components/Tour/Tour_Full.jsx";
 import Packlist_Full from "../components/Packlist/Packlist_Full.jsx";
 import { SetupItemsProvider } from "../Context/PacklistContext.jsx";
 import { UserContext } from "../Context/UserContext.jsx";
+import { DEMO } from "../lib/demo.js";
 import useDocumentTitle from "../lib/useDocumentTitle.js";
 
 /**
@@ -41,7 +42,7 @@ function OverviewPage() {
             </HashLink>
             <span aria-hidden="true" className="h-3 w-px bg-rule" />
             <span className="t-label">
-              {user ? "Signed in" : "Not signed in"}
+              {DEMO ? "Demo · nothing saved" : user ? "Signed in" : "Not signed in"}
             </span>
           </nav>
         </div>

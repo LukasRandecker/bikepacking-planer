@@ -8,3 +8,8 @@ node_modules/
 # Secrets — liegen zusätzlich in Projekt/Server/.gitignore
 .env
 .env.local
+
+# Wird bei jedem Build aus Projekt/Server/data/catalog.json kopiert
+# (siehe Frontend/Bikepacking/scripts/prepare-demo-assets.mjs). Eine zweite,
+# eingecheckte Kopie waere genau die Datei, die von der Quelle wegläuft.
+Projekt/Frontend/Bikepacking/public/catalog.json

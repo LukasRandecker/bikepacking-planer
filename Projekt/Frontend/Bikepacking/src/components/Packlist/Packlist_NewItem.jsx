@@ -4,6 +4,7 @@ import Modal from "../ui/Modal.jsx";
 import { Button, Field, FileDrop, Note } from "../ui/Controls.jsx";
 import { IconImage } from "../ui/Icons.jsx";
 import api from "../../lib/api.js";
+import { DEMO } from "../../lib/demo.js";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -112,8 +113,9 @@ const Packlist_NewItem = ({ category, onClose, onSave }) => {
         {formError ? <Note tone="error">{formError}</Note> : null}
 
         <Note tone="info">
-          New items join the shared catalogue, so the next person planning a
-          tour finds them too. You stay the only one who can edit this entry.
+          {DEMO
+            ? "New items go onto the catalogue for as long as this tab is open. Nothing is uploaded and nothing is kept — reload the page and the catalogue is back to its 500 entries."
+            : "New items join the shared catalogue, so the next person planning a tour finds them too. You stay the only one who can edit this entry."}
         </Note>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -192,6 +194,10 @@ const Packlist_NewItem = ({ category, onClose, onSave }) => {
           hint="Optional — where you bought it, so others can find it again."
         />
 
+        {/* Ein Foto wird auf den Server geladen — ohne Server gibt es nichts,
+            wohin. Das Feld verschwindet, statt beim Speichern zu scheitern. */}
+        {DEMO ? null : (
+          <>
         <FileDrop
           label="Photo — optional"
           icon={IconImage}
@@ -230,6 +236,8 @@ const Packlist_NewItem = ({ category, onClose, onSave }) => {
         <p className="t-label -mt-3">
           Without one the item gets a black plate, like every catalogue entry.
         </p>
+          </>
+        )}
       </div>
     </Modal>
   );

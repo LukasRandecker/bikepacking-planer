@@ -191,8 +191,12 @@ export default function TourPage() {
             <img
               src={assetUrl(tour.Cover)}
               alt={`${tour.Name} — cover photograph`}
+              // Der Rahmen steht auf 3:1.
+              width={1200}
+              height={400}
               loading="eager"
               decoding="async"
+              fetchPriority="high"
             />
           </div>
         ) : null}
@@ -207,7 +211,8 @@ export default function TourPage() {
             <p className="t-label mt-4">
               {tour.Author ? `Filed by ${tour.Author} · ` : ""}
               {dateLabel(tour.StartDate)} – {dateLabel(tour.EndDate)}
-              {days !== null ? ` · ${days} days` : ""}
+              {/* Eine Eintagestour hat null Naechte — "0 days" waere keine Angabe. */}
+              {days ? ` · ${days} ${days === 1 ? "day" : "days"}` : ""}
             </p>
           </div>
 
@@ -263,8 +268,13 @@ export default function TourPage() {
               className="h-full w-full"
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                // CARTO verlangt fuer seine Basemaps inzwischen einen
+                // API-Key: die Kacheln kamen zwar mit 200 zurueck, trugen
+                // aber quer ueber die Karte "API KEY REQUIRED". Die
+                // Standardkacheln von OpenStreetMap brauchen keinen
+                // Schluessel; entfaerbt werden sie in index.css.
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
               <Polyline
                 positions={route}
@@ -278,7 +288,7 @@ export default function TourPage() {
               <Polyline
                 positions={route}
                 pathOptions={{
-                  color: "#a24e2b",
+                  color: "#606c38",
                   weight: 2.5,
                   opacity: 1,
                   lineCap: "butt",

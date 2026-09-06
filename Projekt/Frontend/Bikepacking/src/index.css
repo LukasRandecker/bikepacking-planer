@@ -327,13 +327,6 @@ img {
   );
 }
 
-.m-hatch--ink {
-  background-image: repeating-linear-gradient(
-    45deg,
-    var(--color-rule-dark) 0 1px,
-    transparent 1px 9px
-  );
-}
 
 /* A photograph enters the sheet as a plate: locked to the module, framed by a
    hairline, captioned. It is never a backdrop and never bleeds under text. */
@@ -656,16 +649,6 @@ img {
     transform: scaleX(1);
   }
 }
-
-@keyframes plot-y {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-
 @keyframes plot-wipe {
   from {
     clip-path: inset(0 100% 0 0);
@@ -683,18 +666,6 @@ img {
     clip-path: inset(0 0 0 0);
   }
 }
-
-@keyframes plot-lift {
-  from {
-    opacity: 0;
-    translate: 0 6px;
-  }
-  to {
-    opacity: 1;
-    translate: 0 0;
-  }
-}
-
 .a-rule {
   transform-origin: left;
   animation: plot-x var(--dur-slow) var(--ease-plot) both;
@@ -707,11 +678,6 @@ img {
 .a-drop {
   animation: plot-drop var(--dur) var(--ease-plot) both;
 }
-
-.a-lift {
-  animation: plot-lift var(--dur) var(--ease-plot) both;
-}
-
 .a-d1 {
   animation-delay: 90ms;
 }
@@ -761,6 +727,24 @@ img {
   background: var(--color-field) !important;
   font-family: var(--font-mono) !important;
   font-size: 0.6875rem !important;
+
+  /* Leaflet legt seine Ebenen auf z-index 200 bis 700 und seine Bedienelemente
+     auf 800 bis 1000. Ohne eigenen Stapelkontext gelten diese Zahlen gegen die
+     ganze Seite — die Karte lag damit vor der klebenden Navigation (z-40) und
+     vor jedem Dialog (z-50). `isolation` sperrt alle Leaflet-Ebenen in den
+     Container ein, ohne eine einzige davon anzufassen; `z-index: 0` haelt den
+     Container selbst am unteren Ende der Seite. */
+  isolation: isolate;
+  position: relative !important;
+  z-index: 0 !important;
+}
+
+/* Die Karte ist eine Zeichenflaeche, kein Bild: der Untergrund wird entfaerbt,
+   damit die geplottete Linie die einzige Farbe darauf bleibt (DESIGN.md — Clay
+   ist, was aktiv und fuehrend ist, hier also die gefahrene Strecke). Die
+   Werte sind an den vorherigen hellen Kartenstil angeglichen. */
+.leaflet-tile-pane {
+  filter: grayscale(1) contrast(0.92) brightness(1.06);
 }
 
 .leaflet-container a {
@@ -807,8 +791,5 @@ img {
 @media print {
   body {
     background: #fff;
-  }
-  .no-print {
-    display: none !important;
   }
 }

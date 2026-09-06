@@ -1,0 +1,6 @@
+# Cloudflare Pages: jede Adresse an die SPA ausliefern.
+#
+# Dieses Projekt routet als einziges der fuenf ueber createBrowserRouter, nicht
+# ueber Hash-Routing. Ohne diese Zeile beantwortet der Static-Host den direkten
+# Aufruf von /overview oder /tour/:id mit 404, weil es dort keine Datei gibt.
+/* /index.html 200

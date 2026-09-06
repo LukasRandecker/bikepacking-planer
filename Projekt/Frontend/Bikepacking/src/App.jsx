@@ -3,10 +3,12 @@ import { Outlet, ScrollRestoration } from "react-router-dom";
 
 import NavBar from "./components/NavBar/NavBar.jsx";
 import Footer from "./components/Footer/Footer.jsx";
+import DemoNotice from "./components/DemoNotice/DemoNotice.jsx";
 import Login_Popup from "./components/Popups/Login.jsx";
 
 import { UserContext } from "./Context/UserContext.jsx";
-import { TourFormProvider } from "./Context/TourFormContext.jsx";
+import { TourFormProvider } from "./Context/TourFormProvider.jsx";
+import { DEMO } from "./lib/demo.js";
 import api from "./lib/api.js";
 
 function App() {
@@ -25,13 +27,30 @@ function App() {
   useEffect(() => {
     let cancelled = false;
 
+    // Ohne Server gibt es keine Sitzung, nach der man fragen koennte.
+    if (DEMO) {
+      setChecking(false);
+      return;
+    }
+
+    // Den Token selbst kann JavaScript nicht lesen — deshalb setzt der Server
+    // beim Login zusätzlich ein sichtbares `signed_in`. Ohne dieses Cookie ist
+    // sicher niemand angemeldet, und die Frage an den Server entfällt: sie
+    // hätte nur ein 401 in die Konsole geschrieben und einen Roundtrip
+    // gekostet, den jeder anonyme Besucher bezahlt.
+    if (!document.cookie.split("; ").some((c) => c.startsWith("signed_in="))) {
+      setUser(null);
+      setChecking(false);
+      return;
+    }
+
     api
       .get("/users/me")
       .then(({ data }) => {
         if (!cancelled) setUser(data);
       })
       .catch(() => {
-        // 401 heißt schlicht: niemand eingeloggt.
+        // Der Hinweis war da, der Token aber abgelaufen oder ungültig.
         if (!cancelled) setUser(null);
       })
       .finally(() => {
@@ -50,7 +69,10 @@ function App() {
    */
   const requireLogin = useCallback(
     (reason) => {
-      if (user) return true;
+      // Im Demo-Modus gibt es keine Tuer, vor der jemand stehen koennte:
+      // planen, den Katalog durchsuchen und exportieren geht ohne Konto,
+      // und was ein Konto braeuchte, ist gar nicht erst in der Oberflaeche.
+      if (DEMO || user) return true;
       setLoginReason(reason || "Log in to use this part of the sheet.");
       return false;
     },
@@ -58,6 +80,7 @@ function App() {
   );
 
   const logout = useCallback(async () => {
+    if (DEMO) return;
     try {
       await api.post("/users/logout");
     } finally {
@@ -86,13 +109,14 @@ function App() {
             Skip to content
           </a>
           <NavBar />
+          {DEMO ? <DemoNotice /> : null}
           <main id="main" className="flex-1">
             <Outlet />
           </main>
           <Footer />
         </div>
 
-        {loginReason !== null ? (
+        {loginReason !== null && !DEMO ? (
           <Login_Popup
             loginMessage={loginReason}
             onClose={() => setLoginReason(null)}

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { HashLink } from "react-router-hash-link";
 import { Mark, IconMail } from "../ui/Icons.jsx";
+import { DEMO } from "../../lib/demo.js";
 
 const YEAR = new Date().getFullYear();
 
@@ -46,11 +47,13 @@ function Footer() {
                 Packlist
               </HashLink>
             </li>
-            <li>
-              <Link to="/user" className="flex min-h-11 items-center hover:text-clay">
-                Account
-              </Link>
-            </li>
+            {DEMO ? null : (
+              <li>
+                <Link to="/user" className="flex min-h-11 items-center hover:text-clay">
+                  Account
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
 
@@ -70,7 +73,11 @@ function Footer() {
               </li>
             ))}
           </ul>
-          <p className="t-label">Not written yet — this build is local only.</p>
+          <p className="t-label">
+            {DEMO
+              ? "Not written yet. This is a portfolio demo, not a service."
+              : "Not written yet — this build is local only."}
+          </p>
         </div>
 
         <div className="c-cell flex flex-col gap-3">
@@ -85,10 +92,13 @@ function Footer() {
 
       <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-2 border-t border-ink py-4">
         <span className="t-label">
-          Project · Bikepacking &nbsp;·&nbsp; Build · Local &nbsp;·&nbsp; {YEAR}
+          Project · Bikepacking &nbsp;·&nbsp; Build ·{" "}
+          {DEMO ? "Browser demo" : "Local"} &nbsp;·&nbsp; {YEAR}
         </span>
         <span className="t-label">
-          Reference tours on this site are sample data.
+          {DEMO
+            ? "The two tours on the index ship with this demo. Nothing is stored."
+            : "Reference tours on this site are sample data."}
         </span>
       </div>
     </footer>

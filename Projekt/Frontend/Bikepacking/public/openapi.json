@@ -1,0 +1,780 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bikepacking API",
+    "description": "Routes of the Express server in Projekt/Server. Generated from the same JSDoc comments the running server serves as Swagger UI under /docs.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/bikepacking/users/register": {
+      "post": {
+        "summary": "Konto anlegen und einloggen",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "201": {
+            "description": "Konto angelegt, Sitzungs-Cookie gesetzt"
+          },
+          "400": {
+            "description": "Ungültige Zugangsdaten"
+          },
+          "409": {
+            "description": "Benutzername vergeben"
+          }
+        }
+      }
+    },
+    "/bikepacking/users/login": {
+      "post": {
+        "summary": "Einloggen",
+        "description": "Der Vergleich läuft über bcrypt auf dem Server. Das Passwort verlässt den Server nicht und steht in keiner Antwort.\n",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Eingeloggt, Sitzungs-Cookie gesetzt"
+          },
+          "401": {
+            "description": "Benutzername oder Passwort falsch"
+          }
+        }
+      }
+    },
+    "/bikepacking/users/logout": {
+      "post": {
+        "summary": "Ausloggen",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cookie gelöscht"
+          }
+        }
+      }
+    },
+    "/bikepacking/users/me": {
+      "get": {
+        "summary": "Das eigene Konto",
+        "description": "Die einzige Route, die ein Konto ausliefert — und zwar nur das eigene.",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Konto"
+          },
+          "401": {
+            "description": "Nicht eingeloggt"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Das eigene Konto löschen",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Konto gelöscht"
+          }
+        }
+      }
+    },
+    "/bikepacking/users/me/tours": {
+      "put": {
+        "summary": "Touren mit dem eigenen Konto verknüpfen",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Aktualisiertes Konto"
+          }
+        }
+      }
+    },
+    "/bikepacking/users/me/itemlists": {
+      "put": {
+        "summary": "Packlisten mit dem eigenen Konto verknüpfen",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "Aktualisiertes Konto"
+          }
+        }
+      }
+    },
+    "/bikepacking/tours": {
+      "post": {
+        "summary": "Eine Tour anlegen",
+        "description": "Die Tour gehört dem eingeloggten Konto und ist zunächst privat.",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "201": {
+            "description": "Tour angelegt"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Nicht eingeloggt"
+          }
+        }
+      }
+    },
+    "/bikepacking/tours/feed": {
+      "get": {
+        "summary": "Vorgeschlagene Touren für die Startseite",
+        "description": "Öffentliche Touren, zeitlich sortiert (jüngstes Startdatum zuerst).",
+        "tags": [
+          "Tours"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 12
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "newest",
+                "oldest"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sortierte Tourenliste"
+          }
+        }
+      }
+    },
+    "/bikepacking/tours/mine": {
+      "get": {
+        "summary": "Die eigenen Touren",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "200": {
+            "description": "Touren des eingeloggten Kontos"
+          },
+          "401": {
+            "description": "Nicht eingeloggt"
+          }
+        }
+      }
+    },
+    "/bikepacking/tours/{id}/full": {
+      "get": {
+        "summary": "Eine Tour samt Packliste",
+        "description": "Öffentliche Touren für jeden, private nur für ihr eigenes Konto.",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tour mit Packliste"
+          },
+          "404": {
+            "description": "Tour not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/tours/{id}": {
+      "get": {
+        "summary": "Eine Tour zum Weiterbearbeiten laden",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tour"
+          },
+          "404": {
+            "description": "Tour not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Eine eigene Tour ändern",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tour geändert"
+          },
+          "404": {
+            "description": "Tour not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eine eigene Tour löschen",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "200": {
+            "description": "Tour gelöscht"
+          },
+          "404": {
+            "description": "Tour not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/tours/{id}/publish": {
+      "put": {
+        "summary": "Eine eigene Tour veröffentlichen oder zurückziehen",
+        "description": "Veröffentlichen setzt voraus, dass die Tour eine Packliste mit Items hat — ein Beitrag ohne Liste hätte auf der Startseite nichts zu zeigen.\n",
+        "tags": [
+          "Tours"
+        ],
+        "responses": {
+          "200": {
+            "description": "Sichtbarkeit geändert"
+          },
+          "400": {
+            "description": "Tour ist noch nicht vollständig"
+          },
+          "404": {
+            "description": "Tour not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/items": {
+      "get": {
+        "summary": "Katalog durchsuchen und filtern",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Volltext über Itemname und Section"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CATALOG",
+                "USER",
+                "ALL"
+              ]
+            },
+            "description": "Standard CATALOG. USER und ALL liefern zusätzlich die eigenen Items des eingeloggten Kontos — nie die fremder Konten.\n"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 40
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Treffer mit Gesamtzahl"
+          },
+          "400": {
+            "description": "Ungültige Suchparameter"
+          }
+        }
+      },
+      "post": {
+        "summary": "Eigenes Item anlegen",
+        "description": "Legt immer ein USER-Item an. Katalogeinträge entstehen nur über den Seed.",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Item"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item angelegt"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/bikepacking/items/brands": {
+      "get": {
+        "summary": "Die Marken, die im Katalog vorkommen",
+        "description": "Füttert die Vorschlagsliste im Anlegen-Formular. Damit tippt niemand \"Gore Wear\", \"GoreWear\" und \"gore wear\" als drei Marken ein.\n",
+        "tags": [
+          "Items"
+        ],
+        "responses": {
+          "200": {
+            "description": "Alphabetische Markenliste mit Anzahl"
+          }
+        }
+      }
+    },
+    "/bikepacking/items/{id}": {
+      "get": {
+        "summary": "Ein Item über seine Id holen",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item gefunden"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Name, Preis und Gewicht eines eigenen Items ändern",
+        "description": "Nur USER-Items. Katalogeinträge sind geteilt und werden mit 409 abgelehnt — dafür gibt es /fork.\n",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item geändert"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Item not found"
+          },
+          "409": {
+            "description": "Katalog-Item, nicht änderbar"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Ein eigenes Item löschen",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item gelöscht"
+          },
+          "404": {
+            "description": "Item not found"
+          },
+          "409": {
+            "description": "Katalog-Item, nicht löschbar"
+          }
+        }
+      }
+    },
+    "/bikepacking/items/{id}/fork": {
+      "post": {
+        "summary": "Katalog-Item als eigene Kopie übernehmen",
+        "description": "Katalogeinträge sind geteilte Daten und werden nicht überschrieben. Wer Gewicht oder Preis für seine Liste festhalten will, bekommt hier eine eigene Kopie, die Kategorie, Link, Bild und Herkunft übernimmt.\n",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Kopie angelegt"
+          },
+          "404": {
+            "description": "Item not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/itemlists": {
+      "post": {
+        "summary": "Eine Packliste anlegen",
+        "description": "Die Liste wird direkt mit dem eingeloggten Konto verknüpft.",
+        "tags": [
+          "Itemlist"
+        ],
+        "responses": {
+          "201": {
+            "description": "Angelegt"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Nicht eingeloggt"
+          }
+        }
+      }
+    },
+    "/bikepacking/itemlists/mine": {
+      "get": {
+        "summary": "Die eigenen Packlisten",
+        "tags": [
+          "Itemlist"
+        ],
+        "responses": {
+          "200": {
+            "description": "Listen des eingeloggten Kontos"
+          },
+          "401": {
+            "description": "Nicht eingeloggt"
+          }
+        }
+      }
+    },
+    "/bikepacking/itemlists/add-item": {
+      "put": {
+        "summary": "Ein Item an eine eigene Liste hängen",
+        "description": "Gegenstück zu remove-item. `replaces` tauscht ein bestehendes Item an Ort und Stelle aus — das braucht der Fork eines Katalog-Items.\n",
+        "tags": [
+          "Itemlist"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "listId": {
+                    "type": "string"
+                  },
+                  "itemId": {
+                    "type": "string"
+                  },
+                  "replaces": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aktualisierte Liste"
+          },
+          "404": {
+            "description": "List or item not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/itemlists/remove-item": {
+      "delete": {
+        "summary": "Ein Item aus einer eigenen Liste nehmen",
+        "tags": [
+          "Itemlist"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "listId": {
+                    "type": "string"
+                  },
+                  "itemId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aktualisierte Liste"
+          },
+          "404": {
+            "description": "List or item not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/itemlists/{id}/items": {
+      "get": {
+        "summary": "Eine Liste samt ausgeschriebener Items",
+        "description": "Die eigene Liste immer; eine fremde nur, wenn sie an einer veröffentlichten Tour hängt.\n",
+        "tags": [
+          "Itemlist"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste mit Items und Summen"
+          },
+          "404": {
+            "description": "Itemlist not found"
+          }
+        }
+      }
+    },
+    "/bikepacking/itemlists/{id}": {
+      "get": {
+        "summary": "Eine Liste holen",
+        "tags": [
+          "Itemlist"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Itemlist"
+          },
+          "404": {
+            "description": "Itemlist not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Eine eigene Liste ändern",
+        "tags": [
+          "Itemlist"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Geändert"
+          },
+          "404": {
+            "description": "Itemlist not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eine eigene Liste löschen",
+        "tags": [
+          "Itemlist"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gelöscht"
+          },
+          "404": {
+            "description": "Itemlist not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Item": {
+        "type": "object",
+        "required": [
+          "Categorie",
+          "Itemname"
+        ],
+        "properties": {
+          "Categorie": {
+            "type": "string",
+            "enum": [
+              "Bike and Bags",
+              "Camping Gear",
+              "Clothing",
+              "Hygiene",
+              "Tools",
+              "Other"
+            ]
+          },
+          "IMG": {
+            "type": "string",
+            "description": "Uploadpfad, leer wenn kein Bild hinterlegt ist"
+          },
+          "Itemname": {
+            "type": "string"
+          },
+          "Link": {
+            "type": "string"
+          },
+          "Weight": {
+            "type": "number",
+            "description": "Gewicht in Gramm"
+          },
+          "Price": {
+            "type": "number",
+            "description": "Preis in Euro, 0 = unbekannt"
+          },
+          "Section": {
+            "type": "string",
+            "description": "Herkunftsabschnitt im Katalog"
+          },
+          "Source": {
+            "type": "string",
+            "enum": [
+              "CATALOG",
+              "USER"
+            ]
+          },
+          "Owner": {
+            "type": "string",
+            "description": "User-Id bei selbst angelegten Items"
+          }
+        }
+      },
+      "Itemlist": {
+        "type": "object",
+        "required": [
+          "Name",
+          "items"
+        ],
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "description": "Item-Ids",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Users",
+      "description": "Konten und Sitzung"
+    },
+    {
+      "name": "Tours",
+      "description": "Touren"
+    },
+    {
+      "name": "Items",
+      "description": "Item management"
+    },
+    {
+      "name": "Itemlist",
+      "description": "Packlisten"
+    }
+  ]
+}
